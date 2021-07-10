@@ -1,7 +1,7 @@
-welsummer
-==============================
+![Rooster Icon](https://user-images.githubusercontent.com/8884978/125171698-7849cd00-e183-11eb-86cc-9d3d384a5297.png "Illustration by Joshua Ariza")
 
-A keyword detection system for custom wake words.
+Bawk! Custom wake word detection modeling
+==============================
 
 Project Organization
 ------------
