@@ -90,15 +90,12 @@ src/data/
 .mypy_cache/
 
 # Client (JS)
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 
 # testing
-/coverage
-
-# production
-/build
+coverage/
 
 # misc
 .env.local
