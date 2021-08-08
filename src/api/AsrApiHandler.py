@@ -1,19 +1,22 @@
 from flask_restful import Resource, reqparse
-import os
 import nemo.collections.asr as nemo_asr
+from src.api.WordDetectionService import WordDetectionService
 
 
 model = nemo_asr.models.ASRModel.from_pretrained("QuartzNet15x5Base-En", map_location='cpu')
-# file = os.path.relpath('../data/an197-mgah-b.wav')
 transcriptions = model.transcribe(['src/data/an197-mgah-b.wav'], batch_size=32)
 
 
 class AsrApiHandler(Resource):
 
     def get(self):        
+        req_parser = reqparse.RequestParser()
+        req_parser.add_argument('wakeword', type=str)
+        args = req_parser.parse_args()
+        detector = WordDetectionService(args.wakeword)
         return {
             'resultStatus': 'SUCCESS',
-            'message': transcriptions
+            'message': detector.check_text(transcriptions[0])
         }
 
     def post(self):
