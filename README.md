@@ -3,7 +3,20 @@
 Bawk! Custom wake word detection modeling
 ==============================
 
-Project Organization
+### Local Development
+#### Prerequisites
+Docker Desktop installed
+NPM installed
+
+#### API
+From root directory, run `docker compose up -d`
+
+#### Client
+`cd src/client`
+`npm install`
+`npm start`
+
+### Project Organization
 ------------
 
     ├── LICENSE
