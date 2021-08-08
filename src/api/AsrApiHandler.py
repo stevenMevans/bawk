@@ -1,11 +1,19 @@
 from flask_restful import Resource, reqparse
+import os
+import nemo.collections.asr as nemo_asr
+
+
+model = nemo_asr.models.ASRModel.from_pretrained("QuartzNet15x5Base-En", map_location='cpu')
+# file = os.path.relpath('../data/an197-mgah-b.wav')
+transcriptions = model.transcribe(['src/data/an197-mgah-b.wav'], batch_size=32)
 
 
 class AsrApiHandler(Resource):
-    def get(self):
+
+    def get(self):        
         return {
             'resultStatus': 'SUCCESS',
-            'message': 'Testing 2: testing reloaded'
+            'message': transcriptions
         }
 
     def post(self):

@@ -3,6 +3,7 @@ from flask_restful import Api
 from flask_cors import CORS  # comment this on deployment
 from src.api.AsrApiHandler import AsrApiHandler
 
+
 app = Flask(__name__, static_url_path='', static_folder='./src/client/build')
 CORS(app)  # comment this on deployment
 api = Api(app)
