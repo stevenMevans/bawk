@@ -1,12 +1,14 @@
 # local package
--e .
+# -e .
+# -e git+git://github.com/NVIDIA/NeMo.git@v1.0.2#egg=nemo_toolkit[all]
 
 # external requirements
 # To ensure app dependencies are ported from your virtual environment/host machine into your container, run 'pip freeze > requirements.txt' in the terminal to overwrite this file
-flask==2.0.1
-flask-cors==3.0.10
+flask
+flask-cors
 flask-restful
-gunicorn==20.1.0
+
+# gunicorn
 # click
 # Sphinx
 # coverage

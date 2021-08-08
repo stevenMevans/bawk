@@ -5,7 +5,7 @@ class AsrApiHandler(Resource):
     def get(self):
         return {
             'resultStatus': 'SUCCESS',
-            'message': 'Transcription goes here'
+            'message': 'Testing 2: testing reloaded'
         }
 
     def post(self):

@@ -1,27 +1,28 @@
-ARG BASE_IMAGE=nvcr.io/nvidia/nemo:1.0.1
+# syntax=docker/dockerfile:1.0
+
+ARG BASE_IMAGE=nvcr.io/nvidia/nemo:1.2.0
 
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM ${BASE_IMAGE} as nemo-deps
 
-EXPOSE 5000
+# copy asr service source into a temp directory
+WORKDIR /tmp/bawk
+COPY . .
 
-# Keeps Python from generating .pyc files in the container
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
 
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
+# override nemo installation with dependency from requirements.txt
+RUN /bin/echo "export BASE_IMAGE=${BASE_IMAGE}" >> /root/.bashrc
+RUN cd /tmp/bawk && pip install -r "requirements.txt"
 
-# Install pip requirements
-COPY requirements.txt .
-RUN python -m pip install -r requirements.txt
+# copy webapp into container for end user
+WORKDIR /workspace/bawk
+COPY . /workspace/bawk/
 
-WORKDIR /app
-COPY . /app
-
-# Creates a non-root user with an explicit UID and adds permission to access the /app folder
-# For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
-RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
-USER appuser
+# pre-import some asr dependencies which would take time on each worker
+RUN python -c "import nemo.collections.asr as nemo_asr"
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+EXPOSE 5000
+CMD ["flask", "run"]
