@@ -78,6 +78,7 @@ target/
 # exclude data from source control by default
 data/
 src/data/
+wordhoard_error.yaml
 
 # Mac OS-specific storage files
 .DS_Store
