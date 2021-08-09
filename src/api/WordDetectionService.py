@@ -34,13 +34,13 @@ class WordDetectionService:
 
     Example Usage
     -------
-    # stop_words = 'Hey Fourth Brain'
-    # sp = WordDetectionService(stop_words)
-    # phrase = '''the quick brown fox jumped over the lazy dog'''
-    # phrase2 = phrase + ' hay forth brain'
-    #
-    # print(sp.check_text(phrase)) -> False
-    # print(sp.check_text(phrase2)) -> True
+    stop_words = 'Hay Foufth Brain' #homophone and spelling mistake
+    sp = WordDetectionService(stop_words)
+    phrase = '''the quick brown fox jumped over the lazy dog'''
+    phrase2 = phrase + ' hey fourth brain'
+    
+    print(sp.check_text(phrase)) -> False
+    print(sp.check_text(phrase2)) -> True
     """
 
     def __init__(self, stop_words):
@@ -53,6 +53,7 @@ class WordDetectionService:
 
         self.stop_words = stop_words
         self.expanded_stop_words = self.expand_stop_words()
+        self.expanded_stop_words = WordDetectionService.spellcheck(WordDetectionService.tokenize(self.stop_words),self.expanded_stop_words)
         self.stop_word_length = len(list(self.expanded_stop_words)[0])
 
     def tokenize(phrase):
@@ -138,6 +139,26 @@ class WordDetectionService:
         ngram_set = set(ngrams(text, self.stop_word_length))
 
         #Fixing spelling is slow. Iterates through every word then every tuple for the misspelled words. Comment out/remove if latency is too high.
+        ngram_set = WordDetectionService.spellcheck(text,ngram_set)
+        
+        intersection = self.expanded_stop_words.intersection(ngram_set)
+        return len(intersection) > 0
+
+    def spellcheck(text,ngrams):
+        """ Checks spelling of words in tuples and adds corrected tuples to set.
+        Parameters
+        ----------
+        text : str
+            Words that need spell checking
+        ngrams : set(tuple)
+            text variable split into tuples
+
+        Returns
+        -------
+        set(bool)
+            Tuples with corrected spellings appended
+        """
+
         #find all misspelled words
         spell = SpellChecker()
         misspelled = spell.unknown(text)
@@ -146,10 +167,9 @@ class WordDetectionService:
         for word in misspelled:
             tuples = []
             if(spell.correction(word) != word):
-                for tup in ngram_set:
+                for tup in ngrams:
                     if word in tup:
                         tuples.append(tuple([spell.correction(word) if x == word else x for x in tup]))
-                ngram_set.update(tuples)
-        
-        intersection = self.expanded_stop_words.intersection(ngram_set)
-        return len(intersection) > 0
+                ngrams.update(tuples)
+
+        return ngrams
