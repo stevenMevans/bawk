@@ -1,17 +1,12 @@
 from flask import Flask, send_from_directory
 from flask_restful import Api
 from flask_cors import CORS  # comment this on deployment
-from src.api.AsrApiHandler import AsrApiHandler
+from src.api.keyword_api_handler import KeywordApiHandler
 
 
-app = Flask(__name__, static_url_path='', static_folder='./src/client/build')
+app = Flask(__name__)
 CORS(app)  # comment this on deployment
 api = Api(app)
 
 
-@app.route("/", defaults={'path': ''})
-def serve(path):
-    return send_from_directory(app.static_folder, 'index.html')
-
-
-api.add_resource(AsrApiHandler, '/api/asr')
+api.add_resource(KeywordApiHandler, '/api/asr')
