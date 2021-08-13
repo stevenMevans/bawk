@@ -18,6 +18,14 @@ async def _remove_file(filepath):
     shutil.rmtree(filepath)
 
 
+async def _detect_keyword(filedir, filename, keyword):
+    filepath = os.path.join(filedir, filename)
+    transcriptions = model.transcribe([filepath], batch_size=32)
+    detector = KeywordDetectionService(keyword)
+    detector.check_text(transcriptions[0])
+    _remove_file(filedir)
+
+
 class KeywordApiHandler(Resource):
 
     def post(self):
@@ -42,12 +50,14 @@ class KeywordApiHandler(Resource):
         transcriptions = model.transcribe([filepath], batch_size=32)
         detector = KeywordDetectionService(args.keyword)
         ret_msg = detector.check_text(transcriptions[0])
+
         final_ret = {
             "status": "Success",
             "detected": ret_msg,
             "keyword": args.keyword,
             "transcript": transcriptions[0]
         }
-        asyncio.run(_remove_file(data_store))
+        # asyncio.run(_detect_keyword(filedir=data_store, filename=filename, keyword=args.keyword))
+        _remove_file(filepath=data_store)
 
         return final_ret

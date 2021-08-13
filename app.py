@@ -6,7 +6,8 @@ from src.api.keyword_api_handler import KeywordApiHandler
 
 app = Flask(__name__)
 CORS(app)  # comment this on deployment
+app.config['CORS_HEADERS'] = 'Content-Type'
 api = Api(app)
 
 
-api.add_resource(KeywordApiHandler, '/api/asr')
+api.add_resource(KeywordApiHandler, '/api/detect')
