@@ -4,9 +4,39 @@ plt.switch_backend('agg')
 import matplotlib.ticker as ticker
 import numpy as np
 import torch
+from torch import optim
+import torch.nn as nn
+
 import random
+import time
+import math
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+
+
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
+def showPlot(points):
+    plt.figure()
+    fig, ax = plt.subplots()
+    # this locator puts ticks at regular intervals
+    loc = ticker.MultipleLocator(base=0.2)
+    ax.yaxis.set_major_locator(loc)
+    plt.plot(points)
 
 def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
           decoder_optimizer, criterion,total_length, max_length=MAX_LENGTH):
@@ -59,6 +89,45 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
     decoder_optimizer.step()
 
     return loss.item() / target_length
+
+
+def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+    start = time.time()
+    plot_losses = []
+    print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
+
+    lns = len(transformed_dataset)
+
+    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    training_examples = np.random.choice(lns - 1, n_iters)
+
+    criterion = nn.NLLLoss()
+
+    for iter in range(1, n_iters):
+        training_pair = transformed_dataset[training_examples[iter - 1]]
+        input_tensor = training_pair['waveform']
+        target_tensor = torch.tensor(training_pair['transcription'], dtype=torch.long, device=device).view(-1, 1)
+        tot = input_tensor.size(1)
+
+        loss = train(input_tensor, target_tensor, encoder,
+                     decoder, encoder_optimizer, decoder_optimizer, criterion, tot)
+        print_loss_total += loss
+        plot_loss_total += loss
+
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
+                                         iter, iter / n_iters * 100, print_loss_avg))
+
+        if iter % plot_every == 0:
+            plot_loss_avg = plot_loss_total / (plot_every * 1.0)
+            plot_losses.append(plot_loss_avg)
+            plot_loss_total = 0
+
+    showPlot(plot_losses)
 
 
 

@@ -16,9 +16,10 @@ from constants import *
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 table_trans = str.maketrans(dict.fromkeys(string.punctuation))  # OR {key: None for key in string.punctuation}
 
-path = "/Users/dami.osoba/work/bawk/small_dataset/small/CV_unpacked/cv-corpus-6.1-2020-12-11/en/validated.tsv"
+path = "/Users/dami.osoba/work/bawk/src/data/small/CV_unpacked/cv-corpus-6.1-2020-12-11/en/validated.tsv"
 meta = pd.read_csv(path, sep="\t")
 meta_path = meta.set_index('path')
 
@@ -44,14 +45,14 @@ class VoiceDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        waveform, _ = torchaudio.load(self.path_frame.loc[idx][0].replace('src/data', 'small_dataset'), )
+        waveform, _ = torchaudio.load(self.path_frame.loc[idx][0], )
         label = self.path_frame.loc[idx][0].split("/")[-1].split("wav")[0] + "mp3"
         # transcription for audio
         trans = meta_path.loc[label]['sentence']
         # encode to ascii
         trans = trans.encode(encoding="ascii", errors="ignore").decode().translate(table_trans).lower()
         chars = [b for a in trans for b in a]
-        coded = [char_index.index(a) for a in chars] + [27]
+        coded = [char_index[a] for a in chars] + [27]
 
         sample = {'waveform': waveform, 'transcription': coded, 'sentence': trans}
 
@@ -120,8 +121,8 @@ def read_manifest(path):
             manifest.append(data)
     return manifest
 
-def preprocess():
-    train_manifest_path = '/Users/dami.osoba/work/bawk/small_dataset/commonvoice_train_manifest.json'
+def preprocess(train_manifest_path):
+    # train_manifest_path = '/Users/dami.osoba/work/bawk/small_dataset/commonvoice_train_manifest.json'
     train_manifest_data = read_manifest(train_manifest_path)
     # keep audio < 4s
     train_text = [data['text'] for data in train_manifest_data if data['duration'] <= 4]
