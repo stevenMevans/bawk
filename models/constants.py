@@ -1,4 +1,5 @@
-device = 'cpu'
+hidden_size = 30
+
 MAX_LENGTH = 401
 teacher_forcing_ratio = 0.80
 SOS_token = 28

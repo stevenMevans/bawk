@@ -44,7 +44,7 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
 
 
 
-def evaluateRandomly(transformed_dataset,encoder, decoder, n=1):
+def evaluateRandomly(transformed_dataset,encoder, decoder, n=10):
     for i in range(n):
         choice = np.random.randint(200)
         print(choice)
@@ -52,5 +52,6 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=1):
         ex = transformed_dataset[choice]['waveform']
         output_words, attentions,_ = evaluate(encoder, decoder, ex)
         output_sentence = ''.join(output_words)
-        print(actual, '<', output_sentence)
+        print("#####################")
+        print("GIVEN: ", actual, ' PREDICTED: ', output_sentence)
         print('')
