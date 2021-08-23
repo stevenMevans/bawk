@@ -1,9 +1,14 @@
+import string
 hidden_size = 30
 
 MAX_LENGTH = 401
+mels_dims = 80
 teacher_forcing_ratio = 0.80
 SOS_token = 28
 EOS_token = 27
+PAD_token = 29
+
+table_trans = str.maketrans(dict.fromkeys(string.punctuation))
 
 dictOfindex = {0: ' ',
  1: 'a',
@@ -32,7 +37,9 @@ dictOfindex = {0: ' ',
  24: 'x',
  25: 'y',
  26: 'z',
- 28: 'EOS'}
+ 27: 'EOS',
+ 28: 'SOS',
+ 29: 'PAD'}
 
 char_index = {' ': 0,
  'a': 1,
@@ -61,5 +68,7 @@ char_index = {' ': 0,
  'x': 24,
  'y': 25,
  'z': 26,
- 'EOS': 28}
+ 'EOS': 27,
+ 'SOS': 28,
+ 'PAD': 29}
 

@@ -23,6 +23,9 @@ path = "/Users/dami.osoba/work/bawk/src/data/small/CV_unpacked/cv-corpus-6.1-202
 meta = pd.read_csv(path, sep="\t")
 meta_path = meta.set_index('path')
 
+train_path = []
+train_text = []
+
 
 class VoiceDataset(Dataset):
     def __init__(self, path_list,transform=None):
@@ -52,7 +55,7 @@ class VoiceDataset(Dataset):
         # encode to ascii
         trans = trans.encode(encoding="ascii", errors="ignore").decode().translate(table_trans).lower()
         chars = [b for a in trans for b in a]
-        coded = [char_index[a] for a in chars] + [27]
+        coded = [28,0]+[char_index[a] for a in chars] + [0,27]
 
         sample = {'waveform': waveform, 'transcription': coded, 'sentence': trans}
 
