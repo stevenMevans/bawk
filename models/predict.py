@@ -64,7 +64,7 @@ def inference_from_file(wav_path, transcription, encoder, decoder):
     waveform, _ = torchaudio.load(wav_path)
     sentence = transcription.encode(encoding="ascii", errors="ignore").decode().translate(table_trans)
     chars = [b for a in sentence for b in a]
-    coded = [28] + [char_index[a] for a in chars] + [27]
+    coded = [28,0] + [char_index[a] for a in chars] + [0,27]
     sample = {}
     sample['waveform'] = waveform
     sample['transcription'] = coded
