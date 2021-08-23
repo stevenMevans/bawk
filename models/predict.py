@@ -1,12 +1,14 @@
 import torch
+import torchaudio
 from constants import *
 import numpy as np
+from create_dataset import MelSpec
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
+def evaluate(encoder, decoder, tens, max_length=MAX_LENGTH):
     with torch.no_grad():
-        input_tensor = sentence
+        input_tensor = tens.reshape(1,1,mels_dims*MAX_LENGTH)
         input_length = input_tensor.size(2)
         encoder_hidden = encoder.initHidden()
 
@@ -28,8 +30,8 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
                 decoder_input, decoder_hidden, encoder_outputs)
             decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
-            yay = torch.distributions.categorical.Categorical(decoder_probs)
-            topi = yay.sample()
+            # yay = torch.distributions.categorical.Categorical(decoder_probs)
+            # topi = yay.sample()
             if topi.item() == EOS_token:
                 decoded_words.append('<EOS>')
                 break
@@ -55,3 +57,23 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=10):
         print("#####################")
         print("GIVEN: ", actual, ' PREDICTED: ', output_sentence)
         print('')
+
+
+def inference_from_file(wav_path, transcription, encoder, decoder):
+    # Use the model to predict the label of the waveform
+    waveform, _ = torchaudio.load(wav_path)
+    sentence = transcription.encode(encoding="ascii", errors="ignore").decode().translate(table_trans)
+    chars = [b for a in sentence for b in a]
+    coded = [28] + [char_index[a] for a in chars] + [27]
+    sample = {}
+    sample['waveform'] = waveform
+    sample['transcription'] = coded
+    sample['sentence'] = sentence
+    transformer = MelSpec()
+    mels = transformer(sample)
+    ex = mels['waveform']
+
+    output_words, attentions, _ = evaluate(encoder, decoder, ex)
+    output_sentence = ''.join(output_words)
+    print("transcribe from file: ", output_sentence)
+    return output_sentence

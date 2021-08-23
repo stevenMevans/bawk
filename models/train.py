@@ -75,8 +75,8 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
             decoder_output, decoder_hidden, decoder_attention,output_probs = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             topv, topi = decoder_output.topk(1)
-            yay = torch.distributions.categorical.Categorical(output_probs)
-            topi = yay.sample()
+            # yay = torch.distributions.categorical.Categorical(output_probs)
+            # topi = yay.sample()
             decoder_input = topi.squeeze().detach()  # detach from history as input
 
             loss += criterion(decoder_output, target_tensor[di])
@@ -107,7 +107,9 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
 
     for iter in range(1, n_iters):
         training_pair = transformed_dataset[training_examples[iter - 1]]
-        input_tensor = training_pair['waveform']
+        # input_tensor = training_pair['waveform']
+        input_tensor = training_pair['waveform'].reshape(1,1,mels_dims*MAX_LENGTH)
+
         target_tensor = torch.tensor(training_pair['transcription'], dtype=torch.long, device=device).view(-1, 1)
         tot = input_tensor.size(1)
 

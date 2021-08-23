@@ -19,13 +19,14 @@ class EncoderRNN(nn.Module):
         output, _ = self.embedding(input)
 
         output, hidden = self.gru(output, hidden)
-        m = nn.MaxPool1d(MAX_LENGTH)
-        yy = m(hidden.swapaxes(1, 2))
-        yy = yy.swapaxes(1, 2)
-        return output, yy
+        # m = nn.MaxPool1d(MAX_LENGTH)
+        # yy = m(hidden.swapaxes(1, 2))
+        # yy = yy.swapaxes(1, 2)
+        return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, MAX_LENGTH, self.hidden_size, device=device)
+        # return torch.zeros(1, MAX_LENGTH, self.hidden_size, device=device)
+        return torch.zeros(1, 1, self.hidden_size, device=device)
 
     class DecoderRNN(nn.Module):
         def __init__(self, hidden_size, output_size):
