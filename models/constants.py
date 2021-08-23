@@ -1,5 +1,5 @@
 import string
-hidden_size = 30
+hidden_size = 100
 
 MAX_LENGTH = 401
 mels_dims = 80
