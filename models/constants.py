@@ -1,5 +1,6 @@
 import string
 hidden_size = 100
+sample_rate = 16000
 
 MAX_LENGTH = 401
 mels_dims = 80

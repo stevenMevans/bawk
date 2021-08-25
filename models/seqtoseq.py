@@ -28,28 +28,28 @@ class EncoderRNN(nn.Module):
         # return torch.zeros(1, MAX_LENGTH, self.hidden_size, device=device)
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
-    class DecoderRNN(nn.Module):
-        def __init__(self, hidden_size, output_size):
-            super(DecoderRNN, self).__init__()
-            self.hidden_size = hidden_size
+class DecoderRNN(nn.Module):
+    def __init__(self, hidden_size, output_size):
+        super(DecoderRNN, self).__init__()
+        self.hidden_size = hidden_size
 
-            self.embedding = nn.Embedding(output_size, hidden_size)
-            self.gru = nn.GRU(hidden_size, hidden_size)
-            self.out = nn.Linear(hidden_size, output_size)
-            self.softmax = nn.LogSoftmax(dim=1)
+        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size)
+        self.out = nn.Linear(hidden_size, output_size)
+        self.softmax = nn.LogSoftmax(dim=1)
 
-        def forward(self, input, hidden):
-            output = self.embedding(input).view(1, 1, -1)
-            #         output = self.embedding(input)
-            print(output.shape)
-            output = Fi.relu(output)
-            print(hidden.shape, output.shape)
-            output, hidden = self.gru(output, hidden)
-            output = self.softmax(self.out(output[0]))
-            return output, hidden
+    def forward(self, input, hidden):
+        output = self.embedding(input).view(1, 1, -1)
+        #         output = self.embedding(input)
+        print(output.shape)
+        output = Fi.relu(output)
+        print(hidden.shape, output.shape)
+        output, hidden = self.gru(output, hidden)
+        output = self.softmax(self.out(output[0]))
+        return output, hidden
 
-        def initHidden(self):
-            return torch.zeros(1, 1, self.hidden_size, device=device)
+    def initHidden(self):
+        return torch.zeros(1, 1, self.hidden_size, device=device)
 
 
 class AttnDecoderRNN(nn.Module):
