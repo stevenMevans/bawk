@@ -6,7 +6,8 @@ from create_dataset import MelSpec
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def evaluate(encoder, decoder, tens, max_length=MAX_LENGTH):
+def evaluate(encoder, decoder, tens,greedy=True, max_length=MAX_LENGTH):
+    # greedy = greedy coding or based on sampling from distribution
     with torch.no_grad():
         input_tensor = tens.reshape(1,1,mels_dims*MAX_LENGTH)
         input_length = input_tensor.size(2)
@@ -29,9 +30,11 @@ def evaluate(encoder, decoder, tens, max_length=MAX_LENGTH):
             decoder_output, decoder_hidden, decoder_attention,decoder_probs = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             decoder_attentions[di] = decoder_attention.data
-            topv, topi = decoder_output.data.topk(1)
-            # yay = torch.distributions.categorical.Categorical(decoder_probs)
-            # topi = yay.sample()
+            if greedy:
+                topv, topi = decoder_output.data.topk(1)
+            else:
+                yay = torch.distributions.categorical.Categorical(decoder_probs)
+                topi = yay.sample()
             if topi.item() == EOS_token:
                 decoded_words.append('<EOS>')
                 break
@@ -46,34 +49,38 @@ def evaluate(encoder, decoder, tens, max_length=MAX_LENGTH):
 
 
 
-def evaluateRandomly(transformed_dataset,encoder, decoder, n=10):
+def evaluateRandomly(transformed_dataset,encoder, decoder, n=10,greedy=True):
+    # evaluate some sample data
     for i in range(n):
         choice = np.random.randint(200)
         print(choice)
         actual = transformed_dataset[choice]['sentence']
         ex = transformed_dataset[choice]['waveform']
-        output_words, attentions,_ = evaluate(encoder, decoder, ex)
+        output_words, attentions,_ = evaluate(encoder, decoder, ex,greedy)
         output_sentence = ''.join(output_words)
         print("#####################")
         print("GIVEN: ", actual, ' PREDICTED: ', output_sentence)
         print('')
 
 
-def inference_from_file(wav_path, transcription, encoder, decoder):
+def inference_from_file(wav_path, encoder, decoder,greedy=True):
     # Use the model to predict the label of the waveform
-    waveform, _ = torchaudio.load(wav_path)
-    sentence = transcription.encode(encoding="ascii", errors="ignore").decode().translate(table_trans)
-    chars = [b for a in sentence for b in a]
-    coded = [28,0] + [char_index[a] for a in chars] + [0,27]
+    waveform, sr = torchaudio.load(wav_path)
+
+    #check sample rate
+    if sr > sample_rate:
+        resampler = torchaudio.transforms.Resample(sr, sample_rate)
+        waveform = resampler(waveform)
+
     sample = {}
     sample['waveform'] = waveform
-    sample['transcription'] = coded
-    sample['sentence'] = sentence
+    sample['transcription'] = []
+    sample['sentence'] = ""
     transformer = MelSpec()
     mels = transformer(sample)
     ex = mels['waveform']
 
-    output_words, attentions, _ = evaluate(encoder, decoder, ex)
+    output_words, attentions, _ = evaluate(encoder, decoder, ex,greedy)
     output_sentence = ''.join(output_words)
     print("transcribe from file: ", output_sentence)
     return output_sentence

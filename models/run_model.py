@@ -17,18 +17,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # evaluateRandomly(transformed_dataset,encoder1, attn_decoder1,4)
 
 
-#save models
+# save models
 # enc_path = "enc_model"
 # torch.save(encoder1, enc_path)
 # dec_path = "dec_model"
 # torch.save(attn_decoder1, dec_path)
 
 
-#load models
+# load models
 enmodel = torch.load("enc_model")
 enmodel.eval()
 decmodel = torch.load("dec_model")
 decmodel.eval()
 
-inference_from_file("/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav",
-                    "that might be all right",enmodel,decmodel)
+inference_from_file("/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav",enmodel,decmodel,greedy=False)
