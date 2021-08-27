@@ -1,4 +1,3 @@
-from predict import inference_from_file
 import torch
 import torch.nn as nn
 import torch.nn.functional as Fi
@@ -210,4 +209,4 @@ dec_path = 'dec_model'
 attn_decoder.load_state_dict(torch.load(dec_path))
 attn_decoder.eval()
 
-inference_from_file("/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav",encoder,attn_decoder,greedy=False)
+inference_from_file("/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav",encoder,attn_decoder,greedy=True)
