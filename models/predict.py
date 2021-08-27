@@ -36,7 +36,7 @@ def evaluate(encoder, decoder, tens,greedy=True, max_length=MAX_LENGTH):
                 yay = torch.distributions.categorical.Categorical(decoder_probs)
                 topi = yay.sample()
             if topi.item() == EOS_token:
-                decoded_words.append('<EOS>')
+                decoded_words.append('EOS')
                 break
             else:
                 decoded_words.append(dictOfindex[topi.item()])
@@ -57,7 +57,7 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=10,greedy=True):
         actual = transformed_dataset[choice]['sentence']
         ex = transformed_dataset[choice]['waveform']
         output_words, attentions,_ = evaluate(encoder, decoder, ex,greedy)
-        output_sentence = ''.join(output_words)
+        output_sentence = ''.join(output_words[1:-1])
         print("#####################")
         print("GIVEN: ", actual, ' PREDICTED: ', output_sentence)
         print('')
@@ -81,6 +81,6 @@ def inference_from_file(wav_path, encoder, decoder,greedy=True):
     ex = mels['waveform']
 
     output_words, attentions, _ = evaluate(encoder, decoder, ex,greedy)
-    output_sentence = ''.join(output_words)
+    output_sentence = ''.join(output_words[1:-1])
     print("transcribe from file: ", output_sentence)
     return output_sentence

@@ -1,15 +1,13 @@
 from __future__ import print_function, division,unicode_literals
-import pandas as pd
 from io import open
 from tqdm.auto import tqdm
-import json
 import string
+import pandas as pd
+import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-import torch.nn.functional as Fi
 import torchaudio
-import torchaudio.functional as F
 import torchaudio.transforms as T
 from constants import *
 
@@ -18,10 +16,6 @@ from constants import *
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 table_trans = str.maketrans(dict.fromkeys(string.punctuation))  # OR {key: None for key in string.punctuation}
-
-path = "/Users/dami.osoba/work/bawk/src/data/small/CV_unpacked/cv-corpus-6.1-2020-12-11/en/validated.tsv"
-meta = pd.read_csv(path, sep="\t")
-meta_path = meta.set_index('path')
 
 train_path = []
 train_text = []
@@ -49,13 +43,13 @@ class VoiceDataset(Dataset):
             idx = idx.tolist()
 
         waveform, _ = torchaudio.load(self.path_frame.loc[idx][0], )
-        label = self.path_frame.loc[idx][0].split("/")[-1].split("wav")[0] + "mp3"
+
         # transcription for audio
-        trans = meta_path.loc[label]['sentence']
+        trans = self.path_frame.loc[idx][1]
         # encode to ascii
         trans = trans.encode(encoding="ascii", errors="ignore").decode().translate(table_trans).lower()
         chars = [b for a in trans for b in a]
-        coded = [28,0]+[char_index[a] for a in chars] + [0,27]
+        coded = [SOS_token]+[char_index[a] for a in chars] + [EOS_token]
 
         sample = {'waveform': waveform, 'transcription': coded, 'sentence': trans}
 
@@ -75,14 +69,14 @@ class MelSpec(object):
     """
 
     def __init__(self):
-        self.window_size = 25 / 1000
-        self.stride = 10 / 1000
-        self.sample_rate = 16000
+        self.window_size = window_sz / 1000
+        self.stride = skip / 1000
+        self.sample_rate = sample_rate
         self.n_fft = int(self.window_size * self.sample_rate)
         self.win_length = None
         self.hop_length = int(self.sample_rate * self.stride)
-        self.n_mels = 80
-        self.max_time = 4
+        self.n_mels = mels_dims
+        self.max_time = max_duration
         pass
 
     #         assert isinstance(output_size, (int, tuple))
@@ -128,13 +122,8 @@ def preprocess(train_manifest_path):
     # train_manifest_path = '/Users/dami.osoba/work/bawk/small_dataset/commonvoice_train_manifest.json'
     train_manifest_data = read_manifest(train_manifest_path)
     # keep audio < 4s
-    train_text = [data['text'] for data in train_manifest_data if data['duration'] <= 4]
-    train_path = [data['audio_filepath'] for data in train_manifest_data if data['duration'] <= 4]
-    train_path_pd = pd.DataFrame(train_path, columns=['train_path'])
-
-    # remove unicode
-    sentences = [c.encode(encoding="ascii", errors="ignore").decode().translate(table_trans) for c in train_text]
-    char_dict = sorted(list(set([b for a in sentences for b in a])))
+    train_path = [(data['audio_filepath'], data['text']) for data in train_manifest_data if data['duration'] <= max_duration]
+    train_path_pd = pd.DataFrame(train_path, columns=['train_path','sentence'])
     transformed_dataset = VoiceDataset(path_list=train_path_pd,transform=MelSpec())
     return transformed_dataset
 
