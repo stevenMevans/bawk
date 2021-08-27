@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as Fi
 import torchaudio
 import torchaudio.transforms as T
+import argparse
 
 hidden_size = 100
 sample_rate = 16000
@@ -198,15 +199,26 @@ def inference_from_file(wav_path, encoder, decoder,greedy=True):
     print("transcribe from file: ", output_sentence)
     return output_sentence
 
-encoder = EncoderRNN(mels_dims*MAX_LENGTH, hidden_size).to(device)
-attn_decoder = AttnDecoderRNN(hidden_size, 29, dropout_p=0.1).to(device)
+def main():
+    parser = argparse.ArgumentParser(description='transcribe from file')
+    parser.add_argument("--wav_path", type=str, help="path to wav file to be scores")
+    args= parser.parse_args()
 
-enc_path = 'enc_model'
-encoder.load_state_dict(torch.load(enc_path))
-encoder.eval()
+    encoder = EncoderRNN(mels_dims*MAX_LENGTH, hidden_size).to(device)
+    attn_decoder = AttnDecoderRNN(hidden_size, 29, dropout_p=0.1).to(device)
 
-dec_path = 'dec_model'
-attn_decoder.load_state_dict(torch.load(dec_path))
-attn_decoder.eval()
+    enc_path = 'enc_model'
+    encoder.load_state_dict(torch.load(enc_path))
+    encoder.eval()
 
-inference_from_file("/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav",encoder,attn_decoder,greedy=True)
+    dec_path = 'dec_model'
+    attn_decoder.load_state_dict(torch.load(dec_path))
+    attn_decoder.eval()
+
+    wav_path ="/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav"
+
+    output_sentence = inference_from_file(args.wav_path,encoder,attn_decoder,greedy=True)
+    return output_sentence
+
+if __name__ == "__main__":
+    main()
