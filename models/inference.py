@@ -191,6 +191,9 @@ def inference_from_file(wav_path, encoder, decoder,greedy=True):
         resampler = torchaudio.transforms.Resample(sr, sample_rate)
         waveform = resampler(waveform)
 
+    print(waveform.size())
+    waveform = waveform[:, :max_duration * sample_rate]
+
     transformer = Mel_spectrogram()
     mels = transformer.mel_spectrogram(waveform)
 
