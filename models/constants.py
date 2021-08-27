@@ -3,11 +3,13 @@ hidden_size = 100
 sample_rate = 16000
 
 MAX_LENGTH = 401
+max_duration = 4
 mels_dims = 80
 teacher_forcing_ratio = 0.80
-SOS_token = 28
-EOS_token = 27
-PAD_token = 29
+
+window_sz = 25
+skip = 10
+
 
 table_trans = str.maketrans(dict.fromkeys(string.punctuation))
 
@@ -72,4 +74,8 @@ char_index = {' ': 0,
  'EOS': 27,
  'SOS': 28,
  'PAD': 29}
+
+SOS_token = char_index['SOS']
+EOS_token = char_index['EOS']
+PAD_token = char_index['PAD']
 
