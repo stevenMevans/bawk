@@ -1,17 +1,31 @@
+import asyncio
+import os
+import shutil
+import torch
 from flask_restful import Resource, reqparse
+from uuid import uuid4
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from uuid import uuid4
 
-import shutil
-import os
-import asyncio
-import nemo.collections.asr as nemo_asr
-
+from models.inference import EncoderRNN, AttnDecoderRNN, inference_from_file
 from src.api.keyword_detection_service import KeywordDetectionService
 
+# import nemo.collections.asr as nemo_asr
 
-model = nemo_asr.models.ASRModel.from_pretrained("stt_en_quartznet15x5", map_location='cpu')
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+input_size = 80 * 401
+output_size = 29
+hidden_size = 100
+# model = nemo_asr.models.ASRModel.from_pretrained("stt_en_quartznet15x5", map_location='cpu')
+enmodel = EncoderRNN(input_size=input_size, hidden_size=hidden_size)
+enmodel.load_state_dict(torch.load("/workspace/bawk/models/enc_model", map_location=device))
+enmodel.eval()
+
+decmodel = AttnDecoderRNN(hidden_size=hidden_size, output_size=output_size)
+decmodel.load_state_dict(torch.load("/workspace/bawk/models/dec_model", map_location=device))
+decmodel.eval()
 
 
 async def _remove_file(filepath):
@@ -20,7 +34,7 @@ async def _remove_file(filepath):
 
 async def _detect_keyword(filedir, filename, keyword):
     filepath = os.path.join(filedir, filename)
-    transcriptions = model.transcribe([filepath], batch_size=32)
+    transcriptions = inference_from_file(filepath, enmodel, decmodel)
     detector = KeywordDetectionService(keyword)
     detector.check_text(transcriptions[0])
     _remove_file(filedir)
@@ -47,7 +61,7 @@ class KeywordApiHandler(Resource):
         filepath = os.path.join(data_store, filename)
         file.save(filepath)
 
-        transcriptions = model.transcribe([filepath], batch_size=32)
+        transcriptions = inference_from_file(filepath, enmodel, decmodel)
         detector = KeywordDetectionService(args.keyword)
         ret_msg = detector.check_text(transcriptions[0])
 
