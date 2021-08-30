@@ -13,10 +13,3 @@ services:
       memlock: -1
       stack: 67108864
     shm_size: "8gb"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-            count: 1
-            capabilities: [gpu, utility]
