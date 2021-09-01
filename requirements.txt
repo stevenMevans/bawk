@@ -7,6 +7,7 @@ flask-cors
 flask-restful
 wordhoard
 pyspellchecker
+python-Levenshtein
 
 # gunicorn
 # click

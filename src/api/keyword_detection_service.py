@@ -3,6 +3,7 @@ import itertools
 from nltk.util import ngrams
 from spellchecker import SpellChecker
 import re
+from Levenshtein import setratio
 
 
 class KeywordDetectionService:
@@ -35,7 +36,7 @@ class KeywordDetectionService:
     Example Usage
     -------
     stop_words = 'Hay Foufth Brain' #homophone and spelling mistake
-    sp = WordDetectionService(stop_words)
+    sp = KeywordDetectionService(stop_words)
     phrase = '''the quick brown fox jumped over the lazy dog'''
     phrase2 = phrase + ' hey fourth brain'
     
@@ -122,13 +123,17 @@ class KeywordDetectionService:
         # return cartesian product of homophones
         return set([x for x in itertools.product(*phrase)])
 
-    def check_text(self, text):
+    def check_text(self, text, spellcheck = False, levenshtein_threshold = .9):
         """ Attempts to locate stop words in a string
         Parameters
         ----------
         text : str
             Sample text that may contain stop words
-        
+        spellcheck: bool
+            Flag that runs spellchecker if True, Levenshtein distance if false
+        levenshtein_threshold: float
+            Minimum string set similarity necessary to be considered a match
+
         Returns
         -------
         bool
@@ -138,11 +143,23 @@ class KeywordDetectionService:
         text = KeywordDetectionService.tokenize(text)
         ngram_set = set(ngrams(text, self.stop_word_length))
 
-        #Fixing spelling is slow. Iterates through every word then every tuple for the misspelled words. Comment out/remove if latency is too high.
-        ngram_set = KeywordDetectionService.spellcheck(text, ngram_set)
-        
-        intersection = self.expanded_stop_words.intersection(ngram_set)
-        return len(intersection) > 0
+        #use spellchecker and set intersection
+        if spellcheck:
+            #Fixing spelling is slow. Iterates through every word then every tuple for the misspelled words.
+            ngram_set = KeywordDetectionService.spellcheck(text, ngram_set)
+       
+            intersection = self.expanded_stop_words.intersection(ngram_set)
+            if len(intersection) > 0:
+                return True
+
+        #use levenshtein distance
+        else:
+            for word1 in self.expanded_stop_words:
+                for word2 in ngram_set:
+                    if setratio(word1,word2) > levenshtein_threshold:
+                        return True
+
+        return False
 
     def spellcheck(text,ngrams):
         """ Checks spelling of words in tuples and adds corrected tuples to set.
