@@ -149,8 +149,7 @@ class KeywordDetectionService:
             ngram_set = KeywordDetectionService.spellcheck(text, ngram_set)
        
             intersection = self.expanded_stop_words.intersection(ngram_set)
-            if len(intersection) > 0:
-                return True
+            return len(intersection) > 0
 
         #use levenshtein distance
         else:
@@ -159,7 +158,7 @@ class KeywordDetectionService:
                     if setratio(word1,word2) > levenshtein_threshold:
                         return True
 
-        return False
+            return False
 
     def spellcheck(text,ngrams):
         """ Checks spelling of words in tuples and adds corrected tuples to set.
