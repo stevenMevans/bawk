@@ -10,6 +10,8 @@ import torch.nn as nn
 import random
 import time
 import math
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.dataloader import default_collate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -73,8 +75,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
             decoder_output, decoder_hidden, decoder_attention,output_probs = decoder(
                 decoder_input, decoder_hidden, encoder_outputs)
             topv, topi = decoder_output.topk(1)
-            # yay = torch.distributions.categorical.Categorical(output_probs)
-            # topi = yay.sample()
             decoder_input = topi.squeeze().detach()  # detach from history as input
 
             loss += criterion(decoder_output, target_tensor[di])
@@ -97,8 +97,8 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
 
     lns = len(transformed_dataset)
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
     training_examples = np.random.choice(lns - 1, n_iters)
 
     criterion = nn.NLLLoss()

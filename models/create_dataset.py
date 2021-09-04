@@ -3,9 +3,12 @@ from io import open
 from tqdm.auto import tqdm
 import string
 import pandas as pd
+import numpy as np
 import json
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.dataloader import default_collate
+
 
 import torchaudio
 import torchaudio.transforms as T
@@ -126,6 +129,64 @@ def preprocess(train_manifest_path):
     train_path_pd = pd.DataFrame(train_path, columns=['train_path','sentence'])
     transformed_dataset = VoiceDataset(path_list=train_path_pd,transform=MelSpec())
     return transformed_dataset
+
+
+def pad_sequence(batch):
+    # Make all tensor in a batch the same length by padding with zeros
+    batch = [item.t() for item in batch]
+    batch = torch.nn.utils.rnn.pad_sequence(batch, batch_first=True, padding_value=0)
+    return batch
+
+
+def pad_collate(batch):
+    max_input_len = float('-inf')
+    max_target_len = float('-inf')
+
+    for elem in batch:
+        feature = elem['waveform']
+        feature = feature.squeeze()
+        trn = elem['transcription']
+        max_input_len = max_input_len if max_input_len > feature.shape[0] else feature.shape[0]
+        max_target_len = max_target_len if max_target_len > len(trn) else len(trn)
+
+    for i, elem in enumerate(batch):
+        f = elem['waveform']
+        trn = elem['transcription']
+        sentence = elem['sentence']
+        f = f.squeeze()
+        input_length = f.shape[0]
+        input_dim = f.shape[1]
+        # print('f.shape: ' + str(f.shape))
+        feature = np.zeros((max_input_len, input_dim), dtype=np.float32)
+        feature[:f.shape[0], :f.shape[1]] = f
+        trn = np.pad(trn, (0, max_target_len - len(trn)), 'constant', constant_values=29)
+        batch[i] = (feature, trn, input_length, sentence)
+        # print('feature.shape: ' + str(feature.shape))
+        # print('trn.shape: ' + str(trn.shape))
+
+    batch.sort(key=lambda x: x[2], reverse=True)
+
+    return default_collate(batch)
+
+
+def collate_fn(batch):
+    # A data tuple has the form:
+    # waveform, sample_rate, label, speaker_id, utterance_number
+
+    tensors, targets, sentence = [], [], []
+
+    # Gather in lists, and encode labels as indices
+    for a in batch:
+        tensors += [a['waveform']]
+        targets += [a['transcription']]
+        sentence += [a['sentence']]
+
+    # Group the list of tensors into a batched tensor
+    tensors = tensors
+    #     targets = torch.stack(targets)
+    targets = pad_sequence(targets)
+
+    return tensors, targets, sentence
 
 
 
