@@ -13,14 +13,15 @@ def evaluate(encoder, decoder, features, max_length=100, beam=5, nbest=5):
         input_tensor = features[0]
         target_tensor = features[1]
         input_length = features[2]
+
+        input_tensor = features[0].float().to(device)
+        target_tensor = features[1].long().to(device)
+        input_length = features[2].long().to(device)
         decoded_words = []
 
         encoder_outputs, _ = encoder(input_tensor, input_length)
         nbest_hyps = decoder.recognize_beam(encoder_outputs[0], beam, nbest)
-        if beam > 1:
-            word_index = nbest_hyps[1]['yseq']
-        else:
-            word_index = nbest_hyps['yseq']
+        word_index = nbest_hyps[0]['yseq']
         decoded_word = [dictOfindex[a] for a in word_index]
 
     return decoded_word
@@ -40,24 +41,15 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=1):
         print(actual, '<', output_sentence)
         print('')
 
-def inference_from_file(wav_path, encoder, decoder,greedy=True):
-    # Use the model to predict the label of the waveform
-    waveform, sr = torchaudio.load(wav_path)
+def evaluate_from_file(encoder, decoder, features,beam=5, nbest=5):
+    with torch.no_grad():
+        input_tensor = features.to(device)
+        input_length = torch.tensor([features.size(1)], device=device)
+        decoded_words = []
 
-    #check sample rate
-    if sr > sample_rate:
-        resampler = torchaudio.transforms.Resample(sr, sample_rate)
-        waveform = resampler(waveform)
+        encoder_outputs, _ = encoder(input_tensor, input_length)
+        nbest_hyps = decoder.recognize_beam(encoder_outputs[0], beam, nbest)
+        word_index = nbest_hyps[0]['yseq']
+        decoded_word = [dictOfindex[a] for a in word_index]
 
-    sample = {}
-    sample['waveform'] = waveform
-    sample['transcription'] = []
-    sample['sentence'] = ""
-    transformer = MelSpec()
-    mels = transformer(sample)
-    ex = mels['waveform']
-
-    output_words, attentions, _ = evaluate(encoder, decoder, ex,greedy)
-    output_sentence = ''.join(output_words[1:-1])
-    print("transcribe from file: ", output_sentence)
-    return output_sentence
+    return decoded_word

@@ -1,6 +1,4 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.nn.functional as Fi
@@ -18,25 +16,26 @@ def pad_list(xs, pad_value):
     return pad
 
 
-
 class Encoder(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, dropout=0.0, bidirectional=True):
         super(Encoder, self).__init__()
 
         self.rnn = nn.GRU(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout,
                           bidirectional=bidirectional)
-        self.rnn2 = nn.GRU(hidden_size, hidden_size)
-
+        self.rnn2 = nn.GRU(hidden_size * 2, int(hidden_size / 4), batch_first=True,
+                           bidirectional=bidirectional)
 
     def forward(self, input_x, enc_len):
         total_length = input_x.size(1)  # get the max sequence length
         # print('total_length: ' + str(total_length))
         # print('input_x.size(): ' + str(input_x.size()))
-        packed_input = pack_padded_sequence(input_x, enc_len, batch_first=True)
+        packed_input = pack_padded_sequence(input_x, enc_len, batch_first=True, )
         # print('enc_len: ' + str(enc_len))
         packed_output, hidden = self.rnn(packed_input)
+        packed_output, hidden = self.rnn2(packed_output)
         output, _ = pad_packed_sequence(packed_output, batch_first=True, total_length=total_length)
         return output, hidden
+
 
 
 class DotProductAttention(nn.Module):
@@ -100,6 +99,15 @@ class Decoder(nn.Module):
         H = self.hidden_size if H == None else H
         return encoder_padded_outputs.new_zeros(N, H)
 
+    def pad_list(self, xs, pad_value):
+        # From: espnet/src/nets/e2e_asr_th.py: pad_list()
+        n_batch = len(xs)
+        max_len = max(x.size(0) for x in xs)
+        pad = xs[0].new(n_batch, max_len, *xs[0].size()[1:]).fill_(pad_value)
+        for i in range(n_batch):
+            pad[i, :xs[i].size(0)] = xs[i]
+        return pad
+
     def forward(self, padded_input, encoder_padded_outputs):
         """
         Args:
@@ -115,8 +123,14 @@ class Decoder(nn.Module):
 
         # padding for ys with -1
         # pys: utt x olen
-        ys_in_pad = pad_list(ys, EOS_token)
-        ys_out_pad = pad_list(ys, PAD_token)
+        sos = ys[0].new([SOS_token])
+        eos = ys[0].new([EOS_token])
+        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        ys_out = [torch.cat([y, eos], dim=0) for y in ys]
+
+        ys_in_pad = self.pad_list(ys_in, EOS_token)
+        ys_out_pad = self.pad_list(ys_out, PAD_token)
+
         assert ys_in_pad.size() == ys_out_pad.size()
         batch_size = ys_in_pad.size(0)
         output_length = ys_in_pad.size(1)
@@ -136,7 +150,7 @@ class Decoder(nn.Module):
         for t in range(output_length):
             # step 1. decoder RNN: s_i = RNN(s_i−1,y_i−1,c_i−1)
             rnn_input = torch.cat((embedded[:, t, :], att_c), dim=1)
-#             print(rnn_input.size(),embedded.size(),att_c.size())
+            #             print(rnn_input.size(),embedded.size(),att_c.size())
             h_list[0], c_list[0] = self.rnn[0](
                 rnn_input, (h_list[0], c_list[0]))
             for l in range(1, self.num_layers):
@@ -157,13 +171,13 @@ class Decoder(nn.Module):
         # **********Cross Entropy Loss
         # F.cross_entropy = NLL(log_softmax(input), target))
         y_all = y_all.view(batch_size * output_length, self.vocab_size)
-#         ce_loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
-#                                   ignore_index=PAD_token,
-#                                   reduction='mean')
+        #         ce_loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
+        #                                   ignore_index=PAD_token,
+        #                                   reduction='mean')
 
         return y_all, ys_out_pad.view(-1)
 
-    def recognize_beam(self, encoder_outputs, beam =1,nbest=3):
+    def recognize_beam(self, encoder_outputs, beam=1, nbest=3):
         """Beam search, decode one utterence now.
         Args:
             encoder_outputs: T x H
@@ -172,7 +186,7 @@ class Decoder(nn.Module):
         Returns:
             nbest_hyps:
         """
-        maxlen = 100
+        maxlen = MAX_LENGTH
 
         # *********Init decoder rnn
         h_list = [self.zero_state(encoder_outputs.unsqueeze(0))]

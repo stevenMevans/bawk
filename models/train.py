@@ -38,22 +38,23 @@ def showPlot(points):
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
 
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
-          decoder_optimizer, criterion,total_length, max_length=MAX_LENGTH):
+def train(input_tensor, target_tensor, encoder, decoder, optimizer, criterion,total_length, max_length=MAX_LENGTH):
     encoder_hidden = encoder.initHidden()
 
-    encoder_optimizer.zero_grad()
-    decoder_optimizer.zero_grad()
+    optimizer.zero_grad()
 
-    input_length = input_tensor.size(1)
-    tot_length = total_length
+
+
+    input_tensor = input_tensor.float().to(device)
+    target_tensor = target_tensor.long().to(device)
+
     target_length = target_tensor.size(0)
 
     encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
 
-    encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden,tot_length)
+    encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden,total_length)
 
     decoder_input = torch.tensor([[SOS_token]], device=device)
 
@@ -83,13 +84,22 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer,
 
     loss.backward()
 
-    encoder_optimizer.step()
-    decoder_optimizer.step()
+    optimizer.step()
 
     return loss.item() / target_length
 
 
-def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+def save_checkpoint(epoch, encoder, decoder, optimizer, loss):
+    torch.save({
+            'epoch': epoch,
+            'encoder_state_dict': encoder.state_dict(),
+            'decoder_state_dict': decoder.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            }, '../models/output/model_simple.pth')
+
+
+def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -97,8 +107,9 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
 
     lns = len(transformed_dataset)
 
-    encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam([{'params': encoder.parameters()}, {'params': decoder.parameters()}],
+                                 lr=learning_rate)
+
     training_examples = np.random.choice(lns - 1, n_iters)
 
     criterion = nn.NLLLoss()
@@ -112,7 +123,7 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
         tot = input_tensor.size(1)
 
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion, tot)
+                     decoder, optimizer, criterion, tot)
         print_loss_total += loss
         plot_loss_total += loss
 
@@ -121,13 +132,8 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
             print_loss_total = 0
             print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
                                          iter, iter / n_iters * 100, print_loss_avg))
+            save_checkpoint(iter, encoder, decoder, optimizer, loss)
 
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / (plot_every * 1.0)
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
-
-    showPlot(plot_losses)
 
 
 

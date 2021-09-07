@@ -5,10 +5,14 @@ sample_rate = 16000
 MAX_LENGTH = 401
 max_duration = 4
 mels_dims = 80
-teacher_forcing_ratio = 0.80
-
 window_sz = 25
 skip = 10
+
+
+
+teacher_forcing_ratio = 0.80
+
+
 
 
 table_trans = str.maketrans(dict.fromkeys(string.punctuation))

@@ -33,63 +33,68 @@ def timeSince(since, percent):
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
 
+def train(features, encoder, decoder, optimizer, criterion):
+    optimizer.zero_grad()
 
-def train(features, encoder, decoder, encoder_optimizer,
-          decoder_optimizer, criterion):
-
-    encoder_optimizer.zero_grad()
-    decoder_optimizer.zero_grad()
-
-    input_tensor = features[0]
-    target_tensor = features[1]
-    input_length = features[2]
+    input_tensor = features[0].float().to(device)
+    target_tensor = features[1].long().to(device)
+    input_length = features[2].long().to(device)
 
     batch_size = input_tensor.size(0)
 
-    encoder_output, encoder_hidden = encoder(input_tensor ,input_length)
-    pred ,actual = decoder(target_tensor ,encoder_output)
-    loss = criterion(pred ,actual ,ignore_index=PAD_token ,reduction='sum')
-
-
+    encoder_output, encoder_hidden = encoder(input_tensor, input_length)
+    pred, actual = decoder(target_tensor, encoder_output)
+    loss = criterion(pred, actual, ignore_index=PAD_token, reduction='mean')
+    #     loss = loss[loss>0].sum()/batch_size
+    # #     print(loss)
+    # #     yuck.append(criterion(pred,actual,ignore_index=PAD_token,reduction='none'))
     loss.backward()
 
-    encoder_optimizer.step()
-    decoder_optimizer.step()
+    optimizer.step()
 
-    return loss.item() /batch_size
+    return loss.item()
+
+
+def save_checkpoint(epoch, encoder, decoder, optimizer, loss):
+    torch.save({
+            'epoch': epoch,
+            'encoder_state_dict': encoder.state_dict(),
+            'decoder_state_dict': decoder.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            }, '../models/output/model_las.pth')
 
 
 def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, learning_rate=0.01,bth_size=10):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
 
     lns = len(transformed_dataset)
 
-    encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
-
-    #     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    #     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam([{'params': encoder.parameters()}, {'params': decoder.parameters()}],
+                                 lr=learning_rate)
 
     #     criterion = nn.NLLLoss()
     criterion = Fi.cross_entropy
 
     for i in range(1, n_iters):
-        rand_sampler = torch.utils.data.RandomSampler(transformed_dataset, replacement=False)
-        train_sampler = DataLoader(transformed_dataset, batch_size=10, sampler=rand_sampler, collate_fn=pad_collate)
+        rand_sampler = torch.utils.data.RandomSampler(transformed_dataset)
+        train_sampler = DataLoader(transformed_dataset, batch_size=100, sampler=rand_sampler, collate_fn=pad_collate)
         iterator = iter(train_sampler)
+
         features = iterator.next()
-        loss = train(features, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, criterion)
+        loss = train(features, encoder, decoder, optimizer, criterion)
         print_loss_total += loss
+        plot_loss_total += loss
 
         if i % print_every == 0:
             print_loss_avg = print_loss_total / print_every
-            plot_losses.append(print_loss_avg)
             print_loss_total = 0
             print('%s (%d %d%%) %.4f' % (timeSince(start, i / n_iters),
                                          i, i / n_iters * 100, print_loss_avg))
+            save_checkpoint(i, encoder, decoder, optimizer, loss)
 
 
 

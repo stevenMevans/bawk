@@ -210,11 +210,11 @@ def main():
     encoder = EncoderRNN(mels_dims*MAX_LENGTH, hidden_size).to(device)
     attn_decoder = AttnDecoderRNN(hidden_size, 29, dropout_p=0.1).to(device)
 
-    enc_path = 'enc_model'
+    enc_path = 'output/enc_model'
     encoder.load_state_dict(torch.load(enc_path))
     encoder.eval()
 
-    dec_path = 'dec_model'
+    dec_path = 'output/dec_model'
     attn_decoder.load_state_dict(torch.load(dec_path))
     attn_decoder.eval()
 

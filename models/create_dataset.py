@@ -8,6 +8,7 @@ import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
+import librosa
 
 
 import torchaudio
@@ -22,6 +23,35 @@ table_trans = str.maketrans(dict.fromkeys(string.punctuation))  # OR {key: None 
 
 train_path = []
 train_text = []
+
+
+def mel_spec(a):
+    window_size = window_sz / 1000
+    stride = skip / 1000
+    n_fft = int(window_size * sample_rate)
+    hop_length = int(sample_rate * stride)
+    n_mels = mels_dims
+    max_time = max_duration
+
+    return librosa.feature.melspectrogram(a,
+                                          sr=sample_rate,
+                                          n_fft=n_fft,
+                                          hop_length=hop_length,
+                                          center=True,
+                                          n_mels=n_mels,
+                                          htk=True,
+                                          norm='slaney'
+                                          )
+
+
+def mel_from_wav(wav_path):
+    # Use the model to predict the label of the waveform
+    waveform, sr = librosa.load(wav_path)
+    hmm = waveform.squeeze()
+    wave_spec = mel_spec(hmm)
+    wave_spec = wave_spec.swapaxes(0, 1)
+    wave_spec = torch.tensor(wave_spec, device=device)
+    return wave_spec
 
 
 class VoiceDataset(Dataset):
@@ -121,11 +151,16 @@ def read_manifest(path):
             manifest.append(data)
     return manifest
 
-def preprocess(train_manifest_path):
+def preprocess(train_manifest_path,cloud=False):
     # train_manifest_path = '/Users/dami.osoba/work/bawk/small_dataset/commonvoice_train_manifest.json'
     train_manifest_data = read_manifest(train_manifest_path)
     # keep audio < 4s
-    train_path = [(data['audio_filepath'], data['text']) for data in train_manifest_data if data['duration'] <= max_duration]
+    if not cloud:
+        train_path = [(data['audio_filepath'], data['text']) for data in train_manifest_data if data['duration'] <= max_duration]
+    else:
+        train_path = [(data['audio_filepath'].replace('validated','wav_clips'), data['text']) for data in train_manifest_data
+                      if data['duration'] <= max_duration]
+
     train_path_pd = pd.DataFrame(train_path, columns=['train_path','sentence'])
     transformed_dataset = VoiceDataset(path_list=train_path_pd,transform=MelSpec())
     return transformed_dataset
@@ -156,11 +191,14 @@ def pad_collate(batch):
         f = f.squeeze()
         input_length = f.shape[0]
         input_dim = f.shape[1]
-        # print('f.shape: ' + str(f.shape))
+
         feature = np.zeros((max_input_len, input_dim), dtype=np.float32)
         feature[:f.shape[0], :f.shape[1]] = f
-        trn = np.pad(trn, (0, max_target_len - len(trn)), 'constant', constant_values=29)
-        batch[i] = (feature, trn, input_length, sentence)
+        feature2 = torch.tensor(feature.copy(), dtype=torch.float32, device=device)
+
+        trn2 = np.pad(trn.cpu(), (0, max_target_len - len(trn)), 'constant', constant_values=29)
+        trn3 = torch.tensor(trn2.copy(), dtype=torch.long, device=device)
+        batch[i] = (feature2, trn2, input_length, sentence)
         # print('feature.shape: ' + str(feature.shape))
         # print('trn.shape: ' + str(trn.shape))
 
