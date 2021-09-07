@@ -12,6 +12,8 @@ import time
 import math
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
+from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -78,6 +80,7 @@ def train(input_tensor, target_tensor, encoder, decoder, optimizer, criterion,to
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()  # detach from history as input
 
+
             loss += criterion(decoder_output, target_tensor[di])
             if decoder_input.item() == EOS_token:
                 break
@@ -89,17 +92,28 @@ def train(input_tensor, target_tensor, encoder, decoder, optimizer, criterion,to
     return loss.item() / target_length
 
 
-def save_checkpoint(epoch, encoder, decoder, optimizer, loss):
+def save_checkpoint(epoch, encoder, decoder, optimizer, loss,model_save):
     torch.save({
             'epoch': epoch,
             'encoder_state_dict': encoder.state_dict(),
             'decoder_state_dict': decoder.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
-            }, '../models/output/model_simple.pth')
+            }, f'../models/output/{model_save}.pth')
+
+#
+# def val(dataset):
+#     dataset_size = len(dataset)
+#     validation_split = .2
+#     indices = list(range(dataset_size))
+#     shuffled = np.shuffle(indices)
+#     split = int(validation_split * dataset_size)
+#     train_indices, val_indices = indices[split:], indices[:split]
+#     val_dataset = Subset(dataset, val_indices)
 
 
-def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, learning_rate=0.01):
+
+def trainIters(transformed_dataset,encoder, decoder, n_iters,model_save, print_every=1000, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -111,13 +125,67 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters, print_every=1000, 
                                  lr=learning_rate)
 
     training_examples = np.random.choice(lns - 1, n_iters)
+    # val_size = int(0.1*len(training_examples))+1
 
     criterion = nn.NLLLoss()
 
     for iter in range(1, n_iters):
         training_pair = transformed_dataset[training_examples[iter - 1]]
-        # input_tensor = training_pair['waveform']
-        input_tensor = training_pair['waveform'].reshape(1,1,mels_dims*MAX_LENGTH)
+        input_tensor = training_pair['waveform']
+        # input_tensor = training_pair['waveform'].reshape(1,1,mels_dims*MAX_LENGTH)
+
+
+        target_tensor = torch.tensor(training_pair['transcription'], dtype=torch.long, device=device).view(-1, 1)
+        tot = input_tensor.size(1)
+
+        loss = train(input_tensor, target_tensor, encoder,
+                     decoder, optimizer, criterion, tot)
+        print_loss_total += loss
+        plot_loss_total += loss
+
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
+                                         iter, iter / n_iters * 100, print_loss_avg))
+            save_checkpoint(iter, encoder, decoder, optimizer, loss,model_save)
+
+
+def reload(transformed_dataset,encoder,decoder, n_iters, print_every=1000, learning_rate=0.01):
+    checkpoint = torch.load('output/model_simple.pth',map_location='cpu')
+    # load model weights state_dict
+    encoder.load_state_dict(checkpoint['encoder_state_dict'])
+    encoder = encoder.to(device)
+    encoder.train()
+    decoder.load_state_dict(checkpoint['decoder_state_dict'])
+    decoder = decoder.to(device)
+    decoder.train()
+
+    optimizer = torch.optim.Adam([{'params': encoder.parameters()}, {'params': decoder.parameters()}],
+                                 lr=learning_rate)
+
+    print('Previously trained model weights state_dict loaded...')
+    # load trained optimizer state_dict
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    criterion = checkpoint['loss']
+
+    start = time.time()
+    plot_losses = []
+    print_loss_total = 0  # Reset every print_every
+    plot_loss_total = 0  # Reset every plot_every
+
+    lns = len(transformed_dataset)
+
+    training_examples = np.random.choice(lns - 1, n_iters)
+
+    criterion = nn.NLLLoss()
+
+    for iter in range(1, n_iters):
+        training_pair = transformed_dataset[training_examples[iter - 1]]
+        # input_tensor = training_pair['waveform'].to(device)
+        input_tensor = training_pair['waveform'].reshape(1,1,mels_dims*MAX_LENGTH).to(device)
+
 
         target_tensor = torch.tensor(training_pair['transcription'], dtype=torch.long, device=device).view(-1, 1)
         tot = input_tensor.size(1)

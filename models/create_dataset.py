@@ -92,6 +92,39 @@ class VoiceDataset(Dataset):
         return sample
 
 
+class torch_mel(object):
+
+    def __init__(self):
+        self.window_size = 25 / 1000
+        self.stride = 10 / 1000
+        self.sample_rate = 16000
+        self.n_fft = int(self.window_size * self.sample_rate)
+        self.win_length = None
+        self.hop_length = int(self.sample_rate * self.stride)
+        self.n_mels =mels_dims
+        self.max_time = max_duration
+
+    def mel_spectrogram(self, waveform):
+        mel_spec = T.MelSpectrogram(
+                sample_rate=self.sample_rate,
+                n_fft=self.n_fft,
+                hop_length=self.hop_length,
+                center=True,
+                pad_mode="reflect",
+                power=2.0,
+                norm='slaney',
+                onesided=True,
+                n_mels=self.n_mels,
+                mel_scale="htk")
+        zero_pad = torch.zeros(1, self.sample_rate * self.max_time - waveform.size()[1])
+        padding = torch.cat([waveform, zero_pad], 1)
+        # get spectrogram
+        wave_spec = mel_spec(padding)
+        wave_spec = wave_spec.swapaxes(1, 2)
+        return wave_spec
+
+
+
 class MelSpec(object):
     """Rescale the image in a sample to a given size.
 

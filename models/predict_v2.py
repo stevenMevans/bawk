@@ -53,3 +53,5 @@ def evaluate_from_file(encoder, decoder, features,beam=5, nbest=5):
         decoded_word = [dictOfindex[a] for a in word_index]
 
     return decoded_word
+
+

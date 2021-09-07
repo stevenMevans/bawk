@@ -1,5 +1,5 @@
 import string
-hidden_size = 100
+hidden_size = 256
 sample_rate = 16000
 
 MAX_LENGTH = 401

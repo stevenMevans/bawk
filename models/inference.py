@@ -4,8 +4,9 @@ import torch.nn.functional as Fi
 import torchaudio
 import torchaudio.transforms as T
 import argparse
+import pickle
 
-hidden_size = 100
+hidden_size = 256
 sample_rate = 16000
 
 EOS_token =27
@@ -49,68 +50,6 @@ window_sz = 25
 skip = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super(EncoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-
-        #         self.embedding = nn.Embedding(input_size, hidden_size,)
-        self.embedding = nn.GRU(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-
-    def forward(self, input, hidden, total_length):
-        output, _ = self.embedding(input)
-
-        output, hidden = self.gru(output, hidden)
-        # m = nn.MaxPool1d(MAX_LENGTH)
-        # yy = m(hidden.swapaxes(1, 2))
-        # yy = yy.swapaxes(1, 2)
-        return output, hidden
-
-    def initHidden(self):
-        # return torch.zeros(1, MAX_LENGTH, self.hidden_size, device=device)
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dropout_p=0.1, max_length=MAX_LENGTH):
-        super(AttnDecoderRNN, self).__init__()
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.dropout_p = dropout_p
-        self.max_length = max_length
-
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
-        self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
-        self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
-        self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
-        self.out = nn.Linear(self.hidden_size, self.output_size)
-
-    def forward(self, input, hidden, encoder_outputs):
-        embedded = self.embedding(input).view(1, 1, -1)
-#         embedded ,_= self.embedding(input)
-
-        embedded = self.dropout(embedded)
-
-        attn_weights = Fi.softmax(
-            self.attn(torch.cat((embedded[0], hidden[0]), 1)), dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
-
-        output = torch.cat((embedded[0], attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
-
-        output = Fi.relu(output)
-        output, hidden = self.gru(output, hidden)
-
-        output = Fi.log_softmax(self.out(output[0]), dim=1)
-        output_probs = torch.exp(output)
-        return output, hidden, attn_weights,output_probs
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class Mel_spectrogram(object):
 
@@ -207,18 +146,24 @@ def main():
     parser.add_argument("--wav_path", type=str, help="path to wav file to be scores")
     args= parser.parse_args()
 
-    encoder = EncoderRNN(mels_dims*MAX_LENGTH, hidden_size).to(device)
-    attn_decoder = AttnDecoderRNN(hidden_size, 29, dropout_p=0.1).to(device)
+    with open('output/encoder_vars_new.pkl', 'rb') as convert_file:
+        encoder = pickle.load(convert_file)
 
-    enc_path = 'output/enc_model'
+    with open('output/decoder_vars_new.pkl', 'rb') as convert_file:
+        attn_decoder = pickle.load(convert_file)
+
+    # encoder = EncoderRNN(mels_dims*MAX_LENGTH, hidden_size).to(device)
+    # attn_decoder = AttnDecoderRNN(hidden_size, 29, dropout_p=0.1).to(device)
+
+    enc_path = 'output/enc_model_new'
     encoder.load_state_dict(torch.load(enc_path))
     encoder.eval()
 
-    dec_path = 'output/dec_model'
+    dec_path = 'output/dec_model_new'
     attn_decoder.load_state_dict(torch.load(dec_path))
     attn_decoder.eval()
 
-    wav_path ="/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_119561.wav"
+    wav_path ="/Users/dami.osoba/work/bawk/src/data/small/train/wav/common_voice_en_21353435.wav"
 
     output_sentence = inference_from_file(args.wav_path,encoder,attn_decoder,greedy=True)
     return output_sentence
