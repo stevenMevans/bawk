@@ -3,9 +3,10 @@ import itertools
 from nltk.util import ngrams
 from spellchecker import SpellChecker
 import re
+from Levenshtein import setratio
 
 
-class WordDetectionService:
+class KeywordDetectionService:
     """
     A class to find stop words in a text. Intended for audio snippets transcribed to words but any text will work.
 
@@ -35,7 +36,7 @@ class WordDetectionService:
     Example Usage
     -------
     stop_words = 'Hay Foufth Brain' #homophone and spelling mistake
-    sp = WordDetectionService(stop_words)
+    sp = KeywordDetectionService(stop_words)
     phrase = '''the quick brown fox jumped over the lazy dog'''
     phrase2 = phrase + ' hey fourth brain'
     
@@ -53,7 +54,7 @@ class WordDetectionService:
 
         self.stop_words = stop_words
         self.expanded_stop_words = self.expand_stop_words()
-        self.expanded_stop_words = WordDetectionService.spellcheck(WordDetectionService.tokenize(self.stop_words),self.expanded_stop_words)
+        self.expanded_stop_words = KeywordDetectionService.spellcheck(KeywordDetectionService.tokenize(self.stop_words), self.expanded_stop_words)
         self.stop_word_length = len(list(self.expanded_stop_words)[0])
 
     def tokenize(phrase):
@@ -110,39 +111,54 @@ class WordDetectionService:
         """
 
         # break down into words
-        tokenized_phrase = WordDetectionService.tokenize(self.stop_words)
+        tokenized_phrase = KeywordDetectionService.tokenize(self.stop_words)
         phrase = []
 
         for word in tokenized_phrase:
             homophone = Homophones(word)
             homophone_results = homophone.find_homophones()
-            phrase.append(WordDetectionService.process_homophones(
-                homophone_results)+[word])
+            phrase.append(KeywordDetectionService.process_homophones(
+                homophone_results) + [word])
 
         # return cartesian product of homophones
         return set([x for x in itertools.product(*phrase)])
 
-    def check_text(self, text):
+    def check_text(self, text, spellcheck = False, levenshtein_threshold = .9):
         """ Attempts to locate stop words in a string
         Parameters
         ----------
         text : str
             Sample text that may contain stop words
-        
+        spellcheck: bool
+            Flag that runs spellchecker if True, Levenshtein distance if false
+        levenshtein_threshold: float
+            Minimum string set similarity necessary to be considered a match
+
         Returns
         -------
         bool
             True if stop word was detected in the phrase. False otherwise.
         """
 
-        text = WordDetectionService.tokenize(text)
+        text = KeywordDetectionService.tokenize(text)
         ngram_set = set(ngrams(text, self.stop_word_length))
 
-        #Fixing spelling is slow. Iterates through every word then every tuple for the misspelled words. Comment out/remove if latency is too high.
-        ngram_set = WordDetectionService.spellcheck(text,ngram_set)
-        
-        intersection = self.expanded_stop_words.intersection(ngram_set)
-        return len(intersection) > 0
+        #use spellchecker and set intersection
+        if spellcheck:
+            #Fixing spelling is slow. Iterates through every word then every tuple for the misspelled words.
+            ngram_set = KeywordDetectionService.spellcheck(text, ngram_set)
+       
+            intersection = self.expanded_stop_words.intersection(ngram_set)
+            return len(intersection) > 0
+
+        #use levenshtein distance
+        else:
+            for word1 in self.expanded_stop_words:
+                for word2 in ngram_set:
+                    if setratio(word1,word2) > levenshtein_threshold:
+                        return True
+
+            return False
 
     def spellcheck(text,ngrams):
         """ Checks spelling of words in tuples and adds corrected tuples to set.
