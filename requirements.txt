@@ -8,6 +8,7 @@ flask-restful
 wordhoard
 pyspellchecker
 python-Levenshtein
+mutagen
 
 # gunicorn
 # click
