@@ -13,6 +13,8 @@ def evaluate(encoder, decoder, tens,greedy=True, max_length=MAX_LENGTH):
         # input_tensor = tens.to(device)
         input_length = input_tensor.size(2)
         encoder_hidden = encoder.initHidden()
+        encoder.eval()
+        decoder.eval()
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 

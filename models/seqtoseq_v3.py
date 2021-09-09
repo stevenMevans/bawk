@@ -62,7 +62,7 @@ class AttnDecoderRNN(nn.Module):
         self.attn = nn.Linear(self.hidden_size , self.max_length)
         self.attn_combine = nn.Linear(self.hidden_size , self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.gru = nn.GRUCell(self.hidden_size, self.hidden_size)
 
         self.out = nn.Linear((self.hidden_size)*MAX_LENGTH, output_size)
 
@@ -72,18 +72,21 @@ class AttnDecoderRNN(nn.Module):
 #         embedded ,_= self.embedding(input)
 
         embedded = self.dropout(embedded)
+        rng = embedded.size(1)
 
-        attn_weights = Fi.softmax(
-            self.attn(torch.cat((embedded[0].repeat(401,0), hidden[0]), 1)), dim=1)
+        for t in range(rng):
 
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
-        output = torch.cat((embedded[0].repeat(401,0), attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
+            attn_weights = Fi.softmax(
+                self.attn(torch.cat((embedded[:,t,:], hidden[0]), 1)), dim=1)
 
-        output = Fi.relu(output)
-        output, hidden = self.gru(output, hidden)
-        hmm = self.out(output.resize(1,1,MAX_LENGTH*hidden_size))
+            attn_applied = torch.bmm(attn_weights.unsqueeze(0),
+                                     encoder_outputs.unsqueeze(0))
+            output = torch.cat((embedded[:,t,:], attn_applied[0]), 1)
+            output = self.attn_combine(output).unsqueeze(0)
+            output = Fi.relu(output)
+            output, hidden = self.gru(output, hidden)
+            output = Fi.log_softmax(self.out(output[0]), dim=1)
+            output_probs = torch.exp(output)
 
 
         output = Fi.log_softmax(hmm[0], dim=1)

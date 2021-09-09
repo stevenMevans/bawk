@@ -2,8 +2,9 @@ import string
 hidden_size = 256
 sample_rate = 16000
 
-MAX_LENGTH = 401
-max_duration = 4
+
+max_duration = 8
+MAX_LENGTH = max_duration*100+1
 mels_dims = 80
 window_sz = 25
 skip = 10
