@@ -105,7 +105,7 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=10,greedy=True):
         print('')
 
 
-def inference_from_file(wav_path, encoder, decoder,greedy=True):
+def inference_from_file(wav_path, encoder, decoder,max_duration=4,greedy=True):
     # Use the model to predict the label of the waveform
     waveform, sr = torchaudio.load(wav_path)
 
@@ -114,7 +114,6 @@ def inference_from_file(wav_path, encoder, decoder,greedy=True):
         resampler = torchaudio.transforms.Resample(sr, sample_rate)
         waveform = resampler(waveform)
 
-    print(waveform.size())
     waveform = waveform[:, :max_duration * sample_rate]
 
     transformer = torch_mel()
