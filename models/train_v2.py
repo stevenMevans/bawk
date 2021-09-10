@@ -16,21 +16,9 @@ from torch.utils.data.dataloader import default_collate
 import random
 import time
 import math
+from utils import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '%dm %ds' % (m, s)
-
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
 
 def train(features, encoder, decoder, optimizer, criterion):
@@ -78,75 +66,83 @@ def validate(features, encoder, decoder, optimizer, criterion):
     return loss
 
 
-def save_checkpoint(epoch, encoder, decoder, optimizer, loss):
-    torch.save({
-        'epoch': epoch,
-        'encoder_state_dict': encoder.state_dict(),
-        'decoder_state_dict': decoder.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'loss': loss,
-    }, '../models/output/model.pth')
-
-
-def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.001, reload=False):
+def trainIters(transformed_dataset,encoder, decoder, n_iters,  model_save_path, print_every=1000, learning_rate=0.0001,reload_path=None):
     start = time.time()
-    plot_losses = []
-    plot_losses_val = []
+    plot_losses_train = []
+    plot_losses_valid = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
     print_loss_total_val = 0
     plot_loss_total_val = 0
+    loss_dict ={}
+    if not reload_path:
+        loss_path = model_save_path+"_losses"
+    else:
+        loss_path = reload_path+"_losses"
+
+
 
     lns = len(transformed_dataset)
     optimizer = torch.optim.Adam([{'params': encoder.parameters()}, {'params': decoder.parameters()}],
                                  lr=learning_rate)
 
-    if reload:
-        print("loading previously trained model")
-        checkpoint = torch.load('../models/output/model.pth', map_location='cpu')
+    if reload_path:
+        checkpoint = torch.load(f'output/{model_save_path}', map_location='cpu')
+        # load model weights state_dict
         encoder.load_state_dict(checkpoint['encoder_state_dict'])
         encoder = encoder.to(device)
+        encoder.train()
         decoder.load_state_dict(checkpoint['decoder_state_dict'])
         decoder = decoder.to(device)
-        encoder.train()
         decoder.train()
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        del checkpoint
-        torch.cuda.empty_cache()
+        optimizer = torch.optim.Adam([{'params': encoder.parameters()}, {'params': decoder.parameters()}],
+                                     lr=learning_rate)
 
-    #     criterion = nn.NLLLoss()
+        print('Previously trained model weights state_dict loaded...')
+        # load trained optimizer state_dict
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        criterion = checkpoint['loss']
+
+
     criterion = Fi.cross_entropy
     len_all = len(transformed_dataset)
-    len_train = int(0.8 * len_all)
+    len_train = int(0.9 * len_all)
     train_ds, val_ds = torch.utils.data.random_split(transformed_dataset, (len_train, len_all - len_train))
+    train_sampler = DataLoader(train_ds, batch_size=32, shuffle=True, collate_fn=pad_collate)
+    val_sampler = DataLoader(val_ds, batch_size=10, shuffle=True, collate_fn=pad_collate)
 
     for i in range(1, n_iters):
-        rand_sampler = torch.utils.data.RandomSampler(val_ds)
-        train_sampler = DataLoader(train_ds, batch_size=32, sampler=rand_sampler, collate_fn=pad_collate)
-
-        #         rand_val_sampler = torch.utils.data.RandomSampler(val_ds)
-        #         val_sampler = DataLoader(transformed_dataset, batch_size=10, sampler=rand_val_sampler,collate_fn=pad_collate)
-
         iterator = iter(train_sampler)
         features = iterator.next()
         loss = train(features, encoder, decoder, optimizer, criterion)
         print_loss_total += loss
         plot_loss_total += loss
 
-        #         iter_val = iter(val_sampler)
-        #         features_val = iter_val.next()
-        #         loss_val = validate(features_val, encoder, decoder, optimizer, criterion)
-        #         print_loss_total_val += loss_val
-        #         plot_loss_total_val += loss_val
+        iter_val = iter(val_sampler)
+        features_val = iter_val.next()
+        loss_val = validate(features_val, encoder, decoder, optimizer, criterion)
+        print_loss_total_val += loss_val
+        plot_loss_total_val += loss_val
 
         if i % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
+            plot_losses_train.append(print_loss_avg)
 
             print_loss_avg_val = print_loss_total_val / print_every
             print_loss_total_val = 0
-            print('%s (%d %d%%) %.4f' % (timeSince(start, i / n_iters),
-                                         i, i / n_iters * 100, print_loss_avg))
-            plot_losses.append(print_loss_avg)
-            #             plot_losses_val.append(print_loss_avg_val)
-            save_checkpoint(i, encoder, decoder, optimizer, loss)
+            plot_losses_valid.append(print_loss_avg_val)
+
+            print('%s (%d %d%%) %.4f %.4f' % (timeSince(start, iter / n_iters),
+                                              iter, iter / n_iters * 100, print_loss_avg, print_loss_avg_val))
+            loss_dict['train'] = plot_losses_train
+            loss_dict['valid'] = plot_losses_valid
+
+            if not reload_path:
+                save_checkpoint(iter, encoder, decoder, optimizer, loss, model_save_path)
+                write_loss(loss_path,loss_dict)
+            else:
+                save_checkpoint(iter, encoder, decoder, optimizer, loss, reload_path)
+                write_loss(loss_path, loss_dict)
+
+    return loss_dict

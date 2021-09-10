@@ -6,41 +6,19 @@ plt.switch_backend('agg')
 import matplotlib.ticker as ticker
 import numpy as np
 import torch
-from torch import optim
 import torch.nn as nn
 
 import random
 import time
-import math
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.dataloader import default_collate
-from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
+from utils import *
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '%dm %ds' % (m, s)
 
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
-
-def showPlot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    # this locator puts ticks at regular intervals
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
 
 def train(input_tensor, target_tensor, encoder, decoder, optimizer, criterion,total_length, max_length=MAX_LENGTH):
     encoder.train()
@@ -142,26 +120,6 @@ def validate(input_tensor, target_tensor, encoder, decoder, criterion,total_leng
     return loss.item() / target_length
 
 
-def save_checkpoint(epoch, encoder, decoder, optimizer, loss,model_save):
-    torch.save({
-            'epoch': epoch,
-            'encoder_state_dict': encoder.state_dict(),
-            'decoder_state_dict': decoder.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
-            }, f'output/{model_save}.pth')
-
-#
-# def val(dataset):
-#     dataset_size = len(dataset)
-#     validation_split = .2
-#     indices = list(range(dataset_size))
-#     shuffled = np.shuffle(indices)
-#     split = int(validation_split * dataset_size)
-#     train_indices, val_indices = indices[split:], indices[:split]
-#     val_dataset = Subset(dataset, val_indices)
-
-
 
 def trainIters(transformed_dataset,encoder, decoder, n_iters,model_save, print_every=1000, learning_rate=0.01):
     start = time.time()
@@ -231,8 +189,8 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters,model_save, print_e
     loss_dict = {'train': plot_losses_train, 'valid': plot_losses_valid}
     return loss_dict
 
-def reload(transformed_dataset,encoder,decoder, n_iters, model_save,print_every=1000, learning_rate=0.01):
-    checkpoint = torch.load('output/model_simple.pth',map_location='cpu')
+def reload(transformed_dataset,encoder,decoder, n_iters,  pre_model_path,new_model_path,print_every=1000, learning_rate=0.01):
+    checkpoint = torch.load(f'output/{pre_model_path}', map_location='cpu')
     # load model weights state_dict
     encoder.load_state_dict(checkpoint['encoder_state_dict'])
     encoder = encoder.to(device)
@@ -305,13 +263,11 @@ def reload(transformed_dataset,encoder,decoder, n_iters, model_save,print_every=
             print('%s (%d %d%%) %.4f %.4f' % (timeSince(start, iter / n_iters),
                                               iter, iter / n_iters * 100, print_loss_avg, print_loss_avg_val))
 
-            save_checkpoint(iter, encoder, decoder, optimizer, loss, model_save)
+            save_checkpoint(iter, encoder, decoder, optimizer, loss, new_model_path)
     loss_dict = {'train':plot_losses_train,'valid':plot_losses_valid}
     return loss_dict
 
 
 
-def write_loss(write_path,losses_dict):
-    loss_pd = pd.DataFrame(losses_dict)
-    loss_pd.to_csv(f"output/{write_path}.csv", header=True)
+
 

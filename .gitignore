@@ -85,6 +85,7 @@ wordhoard_error.yaml
 models/output/*.pth
 *.pth
 fourth_sample_wav/*
+fourth_small_wav/*
 # Mac OS-specific storage files
 .DS_Store
 
