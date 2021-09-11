@@ -1,6 +1,6 @@
 from constants import *
 import matplotlib.pyplot as plt
-from create_dataset import pad_collate
+from las_create_dataset import pad_collate
 plt.switch_backend('agg')
 import matplotlib.ticker as ticker
 import numpy as np
@@ -33,7 +33,7 @@ def train(features, encoder, decoder, optimizer, criterion):
 
     batch_size = input_tensor.size(0)
 
-    encoder_output, encoder_hidden = encoder(input_tensor, input_length)
+    encoder_output = encoder(input_tensor, input_length)
     pred, actual = decoder(target_tensor, encoder_output)
     loss = criterion(pred, actual, ignore_index=PAD_token, reduction='mean')
     #     loss = loss[loss>0].sum()/batch_size
@@ -47,21 +47,21 @@ def train(features, encoder, decoder, optimizer, criterion):
 
 
 def validate(features, encoder, decoder, optimizer, criterion):
-    encoder.eval()
-    decoder.eval()
+    with torch.no_grad():
+        encoder.eval()
+        decoder.eval()
 
-    input_tensor = features[0].float().to(device)
-    target_tensor = features[1].long().to(device)
-    input_length = features[2].long().to(device)
+        input_tensor = features[0].float().to(device)
+        target_tensor = features[1].long().to(device)
+        input_length = features[2].long().to(device)
 
-    batch_size = input_tensor.size(0)
 
-    encoder_output, encoder_hidden = encoder(input_tensor, input_length)
-    pred, actual = decoder(target_tensor, encoder_output)
-    loss = criterion(pred, actual, ignore_index=PAD_token, reduction='mean')
-    #     loss = loss[loss>0].sum()/batch_size
-    # #     print(loss)
-    # #     yuck.append(criterion(pred,actual,ignore_index=PAD_token,reduction='none'))
+        encoder_output = encoder(input_tensor, input_length)
+        pred, actual = decoder(target_tensor, encoder_output)
+        loss = criterion(pred, actual, ignore_index=PAD_token, reduction='mean')
+        #     loss = loss[loss>0].sum()/batch_size
+        # #     print(loss)
+        # #     yuck.append(criterion(pred,actual,ignore_index=PAD_token,reduction='none'))
 
     return loss
 

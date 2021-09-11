@@ -1,17 +1,17 @@
 from seqtoseq import *
 from create_dataset import preprocess
-from train import trainIters, reload,write_loss
+from train import trainIters
 from predict import evaluateRandomly
 import torch
 import pickle
 import json
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-epochs= 10
-print_evy = 1
-model_path = "model_simple"
+epochs= 100000
+print_evy = 1000
+model_path = "model_simple_small"
 
-transformed_dataset = preprocess(train_manifest_path='/Users/dami.osoba/work/bawk/small_dataset/commonvoice_train_manifest.json', cloud=True)
+transformed_dataset = preprocess(train_manifest_path='/Users/dami.osoba/work/cv-corpus-6.1-2020-12-11/en/commonvoice_fourth_small_manifest.json')
 
 encoder1 = EncoderRNN(mels_dims*MAX_LENGTH, 256).to(device)
 
@@ -25,8 +25,9 @@ decoder1 = AttnDecoderRNN(256, 29, dropout_p=0.1).to(device)
 
 
 
-loss_dict = trainIters(transformed_dataset,encoder1, decoder1, epochs, print_every= print_evy,learning_rate=0.001,model_save=model_path)
-write_loss("model_simple",loss_dict)
+trainIters(transformed_dataset,encoder1, decoder1, n_iters=epochs,  model_save_path=model_path, print_every=print_evy,
+           learning_rate=0.001, reload_path=None)
+
 evaluateRandomly(transformed_dataset,encoder1, decoder1,10)
 
 # reload(transformed_dataset,encoder1,decoder1, 500, print_every=100, learning_rate=0.0001)
@@ -41,10 +42,10 @@ evaluateRandomly(transformed_dataset,encoder1, decoder1,10)
 #     pickle.dump(decoder1,convert_file)
 #
 #
-# enc_path = "output/enc_model_simple"
-# torch.save(encoder1.state_dict(), enc_path)
-# dec_path = "output/dec_model_simple"
-# torch.save(decoder1.state_dict(), dec_path)
+enc_path = f"output/enc_{model_path}"
+torch.save(encoder1.state_dict(), enc_path)
+dec_path = f"output/dec_{model_path}"
+torch.save(decoder1.state_dict(), dec_path)
 
 
 

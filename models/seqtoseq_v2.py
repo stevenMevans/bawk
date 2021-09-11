@@ -27,14 +27,10 @@ class Encoder(nn.Module):
 
     def forward(self, input_x, enc_len):
         total_length = input_x.size(1)  # get the max sequence length
-        # print('total_length: ' + str(total_length))
-        # print('input_x.size(): ' + str(input_x.size()))
         packed_input = pack_padded_sequence(input_x, enc_len, batch_first=True, )
-        # print('enc_len: ' + str(enc_len))
         packed_output, hidden = self.rnn(packed_input)
-        # packed_output, hidden = self.rnn2(packed_output)
         output, _ = pad_packed_sequence(packed_output, batch_first=True, total_length=total_length)
-        return output, hidden
+        return output
 
 
 
@@ -91,7 +87,7 @@ class Decoder(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(self.encoder_hidden_size + self.hidden_size,
                       self.hidden_size),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(self.hidden_size, self.vocab_size))
 
     def zero_state(self, encoder_padded_outputs, H=None):
@@ -171,9 +167,9 @@ class Decoder(nn.Module):
         # **********Cross Entropy Loss
         # F.cross_entropy = NLL(log_softmax(input), target))
         y_all = y_all.view(batch_size * output_length, self.vocab_size)
-        #         ce_loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
-        #                                   ignore_index=PAD_token,
-        #                                   reduction='mean')
+#         ce_loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
+#                                   ignore_index=PAD_token,
+#                                   reduction='mean')
 
         return y_all, ys_out_pad.view(-1)
 
