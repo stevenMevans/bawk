@@ -1,7 +1,9 @@
 from flask import Flask, send_from_directory
 from flask_restful import Api
 from flask_cors import CORS  # comment this on deployment
-from src.api.keyword_api_handler import KeywordApiHandler
+
+from src.api.pretrained_model_api_handler import PretrainedModelApiHandler
+from src.api.custom_model_api_handler import CustomModelApiHandler
 
 
 app = Flask(__name__)
@@ -10,4 +12,5 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 api = Api(app)
 
 
-api.add_resource(KeywordApiHandler, '/api/detect')
+api.add_resource(CustomModelApiHandler, '/api/custom')
+api.add_resource(PretrainedModelApiHandler, '/api/pretrained')
