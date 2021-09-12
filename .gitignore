@@ -5,6 +5,7 @@ __pycache__/
 # C extensions
 *.so
 
+small_dataset/small/
 # Distribution / packaging
 .Python
 env/
@@ -75,11 +76,17 @@ target/
 # Jupyter NB Checkpoints
 .ipynb_checkpoints/
 
+*.ipynb_checkpoints
+
 # exclude data from source control by default
 data/
 src/data/
 wordhoard_error.yaml
-
+models/output/*
+models/output/*
+*.pth
+fourth_sample_wav/*
+fourth_small_wav/*
 # Mac OS-specific storage files
 .DS_Store
 
