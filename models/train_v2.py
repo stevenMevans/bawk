@@ -110,37 +110,36 @@ def trainIters(transformed_dataset,encoder, decoder, n_iters,  model_save_path, 
     train_ds, val_ds = torch.utils.data.random_split(transformed_dataset, (len_train, len_all - len_train))
     train_sampler = DataLoader(train_ds, batch_size=32, shuffle=True, collate_fn=pad_collate)
     val_sampler = DataLoader(val_ds, batch_size=10, shuffle=True, collate_fn=pad_collate)
+    iterator = iter(train_sampler)
+    val_sampler = DataLoader(val_ds, batch_size=32, shuffle=True, collate_fn=pad_collate)
+    iter_val = iter(val_sampler)
 
     for i in range(1, n_iters):
-        iterator = iter(train_sampler)
+
         features = iterator.next()
         loss = train(features, encoder, decoder, optimizer, criterion)
         print_loss_total += loss
         plot_loss_total += loss
 
-        iter_val = iter(val_sampler)
-        features_val = iter_val.next()
-        loss_val = validate(features_val, encoder, decoder, optimizer, criterion)
-        print_loss_total_val += loss_val
-        plot_loss_total_val += loss_val
+        if i % 10 == 0:
+            features_val = iter_val.next()
+            loss_val = validate(features_val, encoder, decoder, optimizer, criterion)
+            print_loss_avg_val = loss_val
 
         if i % print_every == 0:
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             plot_losses_train.append(print_loss_avg)
-
-            print_loss_avg_val = print_loss_total_val / print_every
-            print_loss_total_val = 0
             plot_losses_valid.append(print_loss_avg_val)
 
-            print('%s (%d %d%%) %.4f %.4f' % (timeSince(start, iter / n_iters),
-                                              iter, iter / n_iters * 100, print_loss_avg, print_loss_avg_val))
-            loss_dict['train'] = plot_losses_train
-            loss_dict['valid'] = plot_losses_valid
+            print('%s (%d %d%%) %.4f %.4f' % (timeSince(start, i / n_iters),
+                                              i, i / n_iters * 100, print_loss_avg, print_loss_avg_val))
+            loss_dict['train'] = torch.tensor(plot_losses_train).to('cpu').numpy()
+            loss_dict['valid'] = torch.tensor(plot_losses_valid).to('cpu').numpy()
 
             if not reload_path:
                 save_checkpoint(iter, encoder, decoder, optimizer, loss, model_save_path)
-                write_loss(loss_path,loss_dict)
+                write_loss(loss_path, loss_dict)
             else:
                 save_checkpoint(iter, encoder, decoder, optimizer, loss, reload_path)
                 write_loss(loss_path, loss_dict)

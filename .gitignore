@@ -82,7 +82,8 @@ target/
 data/
 src/data/
 wordhoard_error.yaml
-models/output/*.pth
+models/output/*
+models/output/*
 *.pth
 fourth_sample_wav/*
 fourth_small_wav/*

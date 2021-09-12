@@ -41,7 +41,7 @@ def evaluateRandomly(transformed_dataset,encoder, decoder, n=1):
         print(actual, '<', output_sentence)
         print('')
 
-def evaluate_from_file(encoder, decoder, features,beam=5, nbest=5):
+def inference_from_file(encoder, decoder, features, beam=1, nbest=1):
     with torch.no_grad():
         input_tensor = features.to(device)
         input_length = torch.tensor([features.size(1)], device=device)
