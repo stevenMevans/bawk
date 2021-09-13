@@ -13,7 +13,7 @@ import librosa
 
 import torchaudio
 import torchaudio.transforms as T
-from constants import *
+from models.constants import *
 
 
 
