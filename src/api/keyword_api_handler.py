@@ -15,14 +15,6 @@ async def _remove_file(filepath):
     shutil.rmtree(filepath)
 
 
-async def _detect_keyword(filedir, filename, keyword):
-    filepath = os.path.join(filedir, filename)
-    transcriptions = inference_from_file(filepath, enmodel, decmodel)
-    detector = KeywordDetectionService(keyword)
-    detector.check_text(transcriptions[0])
-    _remove_file(filedir)
-
-
 class KeywordApiHandler:
 
     @staticmethod
@@ -56,7 +48,6 @@ class KeywordApiHandler:
             "keyword": args.keyword,
             "transcript": transcriptions[0]
         }
-        # asyncio.run(_detect_keyword(filedir=data_store, filename=filename, keyword=args.keyword))
         _remove_file(filepath=data_store)
 
         return final_ret
