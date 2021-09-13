@@ -186,5 +186,6 @@ def main():
     output_sentence = inference_from_file(wav_path,encoder,decoder)
     return output_sentence
 
+
 if __name__ == "__main__":
     main()

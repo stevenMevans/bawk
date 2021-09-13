@@ -1,7 +1,7 @@
-from seqtoseq import *
-from  create_dataset import preprocess,train_text,train_path
-from train import trainIters
-from predict import evaluateRandomly, inference_from_file
+from models.seqtoseq import *
+from models.create_dataset import preprocess, train_text, train_path
+from models.train import trainIters
+from models.predict import evaluateRandomly, inference_from_file
 import torch
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

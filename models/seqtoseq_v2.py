@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torch.nn.functional as Fi
+import pickle
 
-from constants import *
+from models.constants import *
 
 
 def pad_list(xs, pad_value):

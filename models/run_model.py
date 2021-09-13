@@ -1,9 +1,9 @@
 import pandas as pd
 
-from seqtoseq_v2 import *
-from create_dataset import preprocess
-from train import trainIters
-from predict import evaluateRandomly
+from models.seqtoseq_v2 import *
+from models.create_dataset import preprocess
+from models.train import trainIters
+from models.predict import evaluateRandomly
 import torch
 import pickle
 import json

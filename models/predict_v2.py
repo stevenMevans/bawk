@@ -1,9 +1,9 @@
 import torch
 import torchaudio
-from constants import *
-from create_dataset import *
+from models.constants import *
+from models.create_dataset import *
 import numpy as np
-from create_dataset import MelSpec
+from models.create_dataset import MelSpec
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
