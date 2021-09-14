@@ -3,13 +3,20 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "80:80"
     volumes: 
       - .:/workspace/bawk
+      - saved-models:/app
     environment: 
-      FLASK_ENV: development
+      FLASK_ENV: production
     platform: "linux/amd64"
     ulimits:
       memlock: -1
       stack: 67108864
     shm_size: "16g"
+volumes:
+  saved-models:
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "/home/ubuntu/saved_models"

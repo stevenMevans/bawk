@@ -10,9 +10,9 @@ from src.api.keyword_api_handler import KeywordApiHandler
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-model_path = '/workspace/bawk/models/model_las_updated_final.pth'
-encoder_pkl_path = '/workspace/bawk/models/encoder_las.pkl'
-decoder_pkl_path = '/workspace/bawk/models/decoder_las.pkl'
+model_path = '/app/model_las_updated_final.pth'
+encoder_pkl_path = '/app/encoder_las.pkl'
+decoder_pkl_path = '/app/decoder_las.pkl'
 
 with open(encoder_pkl_path, 'rb') as convert_file:
     encoder = renamed_load(convert_file)
