@@ -11,10 +11,6 @@ from werkzeug.utils import secure_filename
 from src.api.keyword_detection_service import KeywordDetectionService
 
 
-async def _remove_file(filepath):
-    shutil.rmtree(filepath)
-
-
 class KeywordApiHandler:
 
     @staticmethod
@@ -22,7 +18,6 @@ class KeywordApiHandler:
         """
         API Endpoint to detect a keyword in an audio file.
         """
-        print("*****  KEYWORD POST")
         parser = reqparse.RequestParser()
         parser.add_argument('keyword', type=str)
         parser.add_argument('audio', type=FileStorage, location='files')
@@ -40,7 +35,7 @@ class KeywordApiHandler:
 
         transcriptions = infer(filepath)
         detector = KeywordDetectionService(args.keyword)
-        ret_msg = detector.check_text(transcriptions[0])
+        ret_msg = detector.check_text(transcriptions[0], spellcheck=True)
 
         final_ret = {
             "status": "Success",
@@ -48,6 +43,6 @@ class KeywordApiHandler:
             "keyword": args.keyword,
             "transcript": transcriptions[0]
         }
-        _remove_file(filepath=data_store)
+        shutil.rmtree(data_store)
 
         return final_ret
