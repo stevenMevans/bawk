@@ -25,9 +25,7 @@ const useStyles = makeStyles((theme) => ({
     position: 'absolute',
     top: -8,
     left: '47.25%',
-    // marginTop: -6,
-    // marginLeft: -6,
-      zIndex: 1
+    zIndex: 1
   }
 }));
 
@@ -37,8 +35,6 @@ const AudioRecoder = ({ handleSubmit }) => {
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recording, setRecording] = useState(false);
     const [recordedChunks, setRecordedChunks] = useState([]);
-    const [audioSrc, setAudioSrc] = useState(null);
-    const [audioSrcObject, setAudioSrcObject] = useState(null);
 
     const startRecording = async () => {
         setRecording(true);
@@ -68,7 +64,6 @@ const AudioRecoder = ({ handleSubmit }) => {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: false, audio: true
             });
-            setAudioSrc(stream);
         } catch (error) {
             throw new Error(
                 `${STREAM_ERROR_MESSAGE} ${error.name} - ${error.message}`
@@ -76,10 +71,6 @@ const AudioRecoder = ({ handleSubmit }) => {
         }
 
         return stream;
-    }
-
-    const handleStreamSuccess = (stream) => {
-
     }
 
     const getMediaRecorder = (stream) => {
@@ -92,10 +83,8 @@ const AudioRecoder = ({ handleSubmit }) => {
     }
 
     const onDataAvailable = ({ data }) => {
-        // ws.send(data);
         if (data.size > 0) {
             recordedChunks.push(data);
-            // setRecordedChunks(recordedChunks.concat(data));
         }
     }
 
@@ -110,7 +99,6 @@ const AudioRecoder = ({ handleSubmit }) => {
 
     return (
         <div>
-            {/*<audio src={audioSrc} controls />*/}
             {
                 recording
                     ?

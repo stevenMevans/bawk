@@ -76,7 +76,7 @@ function App() {
         formData.append('audio', file);
 
         fetch(
-            `http://0.0.0.0:5000/api/${MODEL_ENDPOINT_MAP[model]}`,
+            `http://ec2-34-222-238-222.us-west-2.compute.amazonaws.com:5000/api/${MODEL_ENDPOINT_MAP[model]}`,
             {
                 method: 'POST',
                 body: formData,
