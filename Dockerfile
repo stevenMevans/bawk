@@ -22,5 +22,5 @@ WORKDIR /workspace/bawk
 COPY . /workspace/bawk/
 RUN pip install -r requirements.txt
 
-EXPOSE 80
+EXPOSE 5000
 CMD ["flask", "run"]
