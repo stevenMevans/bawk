@@ -2,7 +2,6 @@
 
 ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:21.06-py3
 
-# For more information, please refer to https://aka.ms/vscode-docker-python
 FROM ${BASE_IMAGE} as nemo-deps
 
 # copy asr service source into a temp directory
@@ -21,6 +20,5 @@ WORKDIR /workspace/bawk
 COPY . /workspace/bawk/
 RUN pip install -r requirements.txt
 
-# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 EXPOSE 5000
 CMD ["flask", "run"]
