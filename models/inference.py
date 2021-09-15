@@ -115,7 +115,7 @@ def evaluate(encoder, decoder, features, max_length=100, beam=1, nbest=1):
 
     return decoded_word
 
-def inference_from_file(wav_path, encoder, decoder):
+def inference_from_file(wav_path, encoder, decoder,verbose=True):
     # Use the model to predict the label of the waveform
     waveform, sr = torchaudio.load(wav_path)
 
@@ -134,7 +134,8 @@ def inference_from_file(wav_path, encoder, decoder):
 
     output_words  = evaluate(encoder, decoder, mels)
     output_sentence = ''.join(output_words[1:-1])
-    print("transcribe from file: ", output_sentence)
+    if verbose:
+        print("transcribe from file: ", output_sentence)
     return output_sentence
 
 def main():

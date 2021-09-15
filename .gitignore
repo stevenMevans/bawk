@@ -87,6 +87,8 @@ models/output/*
 *.pth
 fourth_sample_wav/*
 fourth_small_wav/*
+models/*.pkl
+
 # Mac OS-specific storage files
 .DS_Store
 
