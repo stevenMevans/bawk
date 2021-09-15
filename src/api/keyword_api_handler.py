@@ -7,6 +7,7 @@ from flask_restful import reqparse
 from uuid import uuid4
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
+from pydub import AudioSegment
 
 from src.api.keyword_detection_service import KeywordDetectionService
 
@@ -28,10 +29,14 @@ class KeywordApiHandler:
         args = parser.parse_args()
         file = args.audio
         filename = secure_filename(file.filename)
+        format = filename.split('.')[-1]
+        aud_file = AudioSegment.from_file(file, format=format)
+
         if not os.path.exists(data_store):
             os.makedirs(data_store)
         filepath = os.path.join(data_store, filename)
-        file.save(filepath)
+        aud_file.export(filepath, format="wav")
+        # file.save(filepath)
 
         transcriptions = infer(filepath)
         detector = KeywordDetectionService(args.keyword)

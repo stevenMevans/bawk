@@ -19,6 +19,7 @@ wordhoard
 pyspellchecker
 python-Levenshtein
 mutagen
+pydub
 
 # gunicorn
 # click

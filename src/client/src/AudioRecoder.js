@@ -89,9 +89,13 @@ const AudioRecoder = ({ handleSubmit }) => {
     }
 
     const onMediaRecorderStop = () => {
-        const blob = new Blob(recordedChunks);
-        const file = new File([blob], `temp.wav`, {
-            type: 'audio/wav;',
+        const mimeType = recordedChunks[0].type;
+        const mimeTypeSplit = mimeType.split(';')
+        const container = mimeTypeSplit[0];
+        // const codecs = mimeTypeSplit.length > 1 ? mimeTypeSplit[1] : '';
+        const ext = container.split('/')[1];
+        const file = new File(recordedChunks, `temp.${ext}`, {
+            type: mimeType,
             lastModified: Date.now()
         });
         handleSubmit(file);
