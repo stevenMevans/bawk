@@ -40,7 +40,7 @@ class KeywordApiHandler:
 
         transcriptions = infer(filepath)
         detector = KeywordDetectionService(args.keyword)
-        ret_msg = detector.check_text(transcriptions[0])
+        ret_msg = detector.check_text(transcriptions[0], spellcheck=True)
 
         final_ret = {
             "status": "Success",
