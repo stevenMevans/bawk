@@ -115,7 +115,7 @@ def evaluate(encoder, decoder, features, max_length=100, beam=1, nbest=1):
 
     return decoded_word
 
-def inference_from_file(wav_path, encoder, decoder,verbose=True):
+def inference_from_file(wav_path, encoder, decoder,verbose=False):
     # Use the model to predict the label of the waveform
     waveform, sr = torchaudio.load(wav_path)
 
@@ -124,7 +124,7 @@ def inference_from_file(wav_path, encoder, decoder,verbose=True):
         resampler = torchaudio.transforms.Resample(sr, sample_rate)
         waveform = resampler(waveform)
 
-    waveform = waveform[:, :max_duration * sample_rate]
+#     waveform = waveform[:, :max_duration * sample_rate]
 
     waveform = waveform.numpy()
     waveform = waveform.squeeze()
