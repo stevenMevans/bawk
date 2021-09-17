@@ -31,6 +31,7 @@ class KeywordApiHandler:
         filename = secure_filename(file.filename)
         format = filename.split('.')[-1]
         aud_file = AudioSegment.from_file(file, format=format)
+        aud_file = aud_file.set_frame_rate(16000)
 
         if not os.path.exists(data_store):
             os.makedirs(data_store)
