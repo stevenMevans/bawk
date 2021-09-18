@@ -133,7 +133,7 @@ def inference_from_file(wav_path, encoder, decoder,verbose=False):
     mels = transformer.mel_spectrogram(waveform)
 
     output_words  = evaluate(encoder, decoder, mels)
-    output_sentence = ''.join(output_words[1:-1])
+    output_sentence = [''.join(output_words[1:-1])]
     if verbose:
         print("transcribe from file: ", output_sentence)
     return output_sentence
